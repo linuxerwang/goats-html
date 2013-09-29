@@ -39,6 +39,36 @@ modified the template (as long as the template interface was not changed).
 Both the template generator and the dev server is provided the command goats.
 
 
+Download the Prebuilt Debian/Ubuntu Package
+===========================================
+
+Download the [deb package](https://github.com/linuxerwang/goats-html/blob/master/binaries/goats-html_0.1.0_amd64.deb?raw=true).
+
+Install and Setup
+-----------------
+
+    $ sudo dpkg -i goats-html_0.1.0_amd64.deb
+
+Now you need to setup your GOPATH to include the goats sources:
+
+    $ export GOPATH=$GOPATH:/usr/share/goats-html/go
+
+Once it's installed, you can generate GO programs from your template (suppose
+your current working directory is in $GOPATH):
+
+    $ goats gen --template_dir goats-html/example
+
+If you are not in $GOPATH, you need to specify the path to the top source
+directory:
+
+    $ goats gen --package_root --template_dir goats-html/example
+
+The output directory is by default the same as the template directory, but
+you can specify differently:
+
+    $ goats gen --template_dir goats-html/example --output_dir goats-html/mypkg
+
+
 Build from Source Code
 ======================
 
@@ -72,30 +102,6 @@ need this environment for your application):
 or to create Debian/Ubuntu packages on x86_64:
 
     $ make amd64
-
-Install and Setup
------------------
-
-    $ sudo dpkg -i goats-html_0.1.0_amd64.deb
-
-Now you need to setup your GOPATH to include the goats sources:
-
-    $ export GOPATH=$GOPATH:/usr/share/goats-html/go
-
-Once it's installed, you can generate GO programs from your template (suppose
-your current working directory is in $GOPATH):
-
-    $ goats gen --template_dir goats-html/example
-
-If you are not in $GOPATH, you need to specify the path to the top source
-directory:
-
-    $ goats gen --package_root --template_dir goats-html/example
-
-The output directory is by default the same as the template directory, but
-you can specify differently:
-
-    $ goats gen --template_dir goats-html/example --output_dir goats-html/mypkg
 
 
 Run the Example Program
