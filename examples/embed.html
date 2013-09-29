@@ -1,0 +1,28 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html go:import="a/b/data">
+  <body>
+    <div go:template="Outer"
+         go:arg="x: int = xx"
+         go:arg="y: string = yy"
+         go:arg="z: data.Request">
+      <div go:for="product: z.Products">
+        <div go:if="true"
+             go:for="item: product.items"
+             go:content="item.Name">
+        </div>
+      </div>
+      <div go:template="Inner">
+        <ul>
+          <li go:for="product: z.Products"
+              go:content="product.Name">
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div go:template="Widget">
+      <a href="http://www.test.com/index.html">Test</a>
+      <div go:call="common.html#Inner"></div>
+    </div>
+  </body>
+</html>

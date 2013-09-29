@@ -1,0 +1,35 @@
+<html go:import="goats-html/examples/data">
+  <div go:template="BookCard"
+       go:arg="book: *data.Book"
+       go:arg="loopvar: *runtime.LoopVar">
+    <div>
+      <span go:content="loopvar.Counter"></span>.
+      <span go:content="book.Name" class="book_title"></span>
+      (<div go:for="@idx, author: book.Authors"
+            go:omit-tag="true">
+        <span go:omit-tag="true"
+              go:if="idx.Counter0 > 0">, </span>
+        <span go:content="author.FirstName + ' ' + author.LastName"
+              class="author_name"></span>
+      </div>)
+    </div>
+  </div>
+
+  <div go:template="HotBooks"
+       go:arg="books: []*data.Book"
+       class="hotbook_list">
+    Hot books:<br>
+    <div go:for="@idx, book: books">
+      <div go:replaceable="HotBook"
+           go:arg="book: *data.Book = book"
+           go:arg="idx: *runtime.LoopVar = idx">
+        <div go:content="idx.Counter"></div><div class="book_name" go:content="book.Name"></div>
+      </div>
+    </div>
+
+    <div go:replaceable="FirstBook"
+         go:arg="book: *data.Book = books[0]">
+      Fist book: <span go:content="book.Name"></span>
+    </div>
+  </div>
+</html>

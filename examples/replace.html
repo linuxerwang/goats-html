@@ -1,0 +1,54 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html go:import="a/b/data">
+  <body>
+    <div go:template="BaseLayout">
+      <div class="topPanel">
+        <div go:replaceable="TopPanel">
+          <div>Welcome to home page</div>
+        </div>
+      </div>
+      <div class="navPanel">
+        <div go:replaceable="LeftPanel">
+          <div go:call="common.html#TreeMenu"></div>
+        </div>
+      </div>
+      <div class="contentPanel">
+        <div go:replaceable="RightPanel"></div>
+      </div>
+    </div>
+
+    <div go:template="UserManagement"
+         go:arg="users: []string">
+      <div go:call="#BaseLayout">
+        <div go:replace="TopPanel">
+          <div>Welcome to user management</div>
+        </div>
+        <div go:replace="RightPanel">
+          <ul>
+            <li go:for="user: users"
+                go:content="user">
+            </li>
+            <textarea row="10" cols="80"></textarea>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div go:template="Forum"
+         go:arg="posts: []string"
+         class="go_forum">
+      <div go:call="#BaseLayout">
+        <div go:replace="TopPanel">
+          <div class="go_forum_welcome">Welcome to forum</div>
+        </div>
+        <div go:replace="RightPanel">
+          <ul>
+            <li go:for="post: posts"
+                go:content="post">
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

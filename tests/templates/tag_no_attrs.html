@@ -1,0 +1,50 @@
+<html>
+  <div go:template="TagNoAttrs">Content</div>
+
+  <div go:template="TagNoAttrs1">
+    <div>Content</div>
+  </div>
+
+  <div go:template="CallTagNoAttrs">
+    <div go:call="#TagNoAttrs"></div>
+  </div>
+
+  <div go:template="CallTagNoAttrs1">
+    <div go:call="#TagNoAttrs"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagNoAttrs2">
+    <div go:call="#TagNoAttrs"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagNoAttrs3">
+    <div go:call="#TagNoAttrs"
+         go:omit-tag="true"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagNoAttrs4">
+    <div go:call="#TagNoAttrs"
+         go:omit-tag="false"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagNoAttrs5">
+    <div go:call="#TagNoAttrs"
+         go:omit-tag="1 == 1"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagNoAttrs6">
+    <div go:call="#TagNoAttrs"
+         go:omit-tag="1 == 2"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+</html>

@@ -1,0 +1,51 @@
+<html>
+  <div go:template="TagDynamicAttrs"
+       go:attr="class: 'test_tag'">Content</div>
+
+  <div go:template="TagDynamicAttrs1">
+    <div go:attr="class: 'test_tag'">Content</div>
+  </div>
+
+  <div go:template="CallTagDynamicAttrs">
+    <div go:call="#TagDynamicAttrs"></div>
+  </div>
+
+  <div go:template="CallTagDynamicAttrs1">
+    <div go:call="#TagDynamicAttrs"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagDynamicAttrs2">
+    <div go:call="#TagDynamicAttrs"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagDynamicAttrs3">
+    <div go:call="#TagDynamicAttrs"
+         go:omit-tag="true"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagDynamicAttrs4">
+    <div go:call="#TagDynamicAttrs"
+         go:omit-tag="false"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagDynamicAttrs5">
+    <div go:call="#TagDynamicAttrs"
+         go:omit-tag="1 == 1"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+
+  <div go:template="CallTagDynamicAttrs6">
+    <div go:call="#TagDynamicAttrs"
+         go:omit-tag="1 == 2"
+         go:attr="class: 'caller_tag'"
+         class="tag1"></div>
+  </div>
+</html>

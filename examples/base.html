@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html go:template="Main"
+      go:import="a/b/data"
+      go:arg="x: int = xx"
+      go:arg="y: string = yy"
+      go:arg="z: data.Request">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>goats - The GO template system</title>
+  </head>
+  <body>
+    <div go:for="product: z.products">
+      <div go:if="true"
+           go:for="item: product.items"
+           go:content="item.Name">
+      </div>
+    </div>
+  </body>
+</html>

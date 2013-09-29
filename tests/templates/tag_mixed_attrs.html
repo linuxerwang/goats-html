@@ -1,0 +1,52 @@
+<html>
+  <div go:template="TagMixedAttrs"
+       go:attr="class: 'test_tag'"
+       class="tag1">Content</div>
+
+  <div go:template="TagMixedAttrs1">
+    <div go:attr="class: 'test_tag'" class="tag1">Content</div>
+  </div>
+
+  <div go:template="CallTagMixedAttrs">
+    <div go:call="#TagMixedAttrs"></div>
+  </div>
+
+  <div go:template="CallTagMixedAttrs1">
+    <div go:call="#TagMixedAttrs"
+         class="tag2"></div>
+  </div>
+
+  <div go:template="CallTagMixedAttrs2">
+    <div go:call="#TagMixedAttrs"
+         go:attr="class: 'caller_tag'"
+         class="tag2"></div>
+  </div>
+
+  <div go:template="CallTagMixedAttrs3">
+    <div go:call="#TagMixedAttrs"
+         go:omit-tag="true"
+         go:attr="class: 'caller_tag'"
+         class="tag2"></div>
+  </div>
+
+  <div go:template="CallTagMixedAttrs4">
+    <div go:call="#TagMixedAttrs"
+         go:omit-tag="false"
+         go:attr="class: 'caller_tag'"
+         class="tag2"></div>
+  </div>
+
+  <div go:template="CallTagMixedAttrs5">
+    <div go:call="#TagMixedAttrs"
+         go:omit-tag="1 == 1"
+         go:attr="class: 'caller_tag'"
+         class="tag2"></div>
+  </div>
+
+  <div go:template="CallTagMixedAttrs6">
+    <div go:call="#TagMixedAttrs"
+         go:omit-tag="1 == 2"
+         go:attr="class: 'caller_tag'"
+         class="tag2"></div>
+  </div>
+</html>

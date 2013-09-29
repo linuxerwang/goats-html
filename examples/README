@@ -1,0 +1,31 @@
+First you need to build and install goats command:
+
+$ cd $GOPATH/src/goats-html
+$ make
+
+This will generate an executable "goats" into $GOPATH/bin. You need to put $GOPATH/bin into
+your PATH environment so you can execute goats at anywhere.
+
+To run the examples, execute the following commands in $GOPATH/src:
+
+$ rm $GOPATH/pkg/linux_amd64/goats-html/*
+$ goats gen --template_root goats-html/examples/
+$ go run --tags goats_devmod goats-html/examples/main.go
+
+To run the dev server, execute the following commands in $GOPATH/src:
+
+$ rm $GOPATH/pkg/linux_amd64/goats-html/*
+$ go run --tags goats_devmod goats-html/examples/server/main.go
+
+
+How to profiling it?
+
+First you need install graphviz.
+
+$ go build -o benchmark goats-html/examples/main.go
+$ ./benchmark -cpuprofile=benchmark.prof --benchmark --large
+
+$ go tool pprof benchmark benchmark.prof
+Welcome to pprof!  For help, type 'help'.
+(pprof) web
+

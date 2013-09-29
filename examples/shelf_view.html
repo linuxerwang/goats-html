@@ -1,0 +1,104 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html go:template="ShelfView"
+      go:import="goats-html/examples/data"
+      go:arg="shelf: *data.Shelf">
+<head>
+  <title>Bookshelf</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <style>
+    body {
+      font-family: Courier, Arial, Helvetica, sans-serif;
+      font-size: 120%;
+    }
+    .price-tag {
+      border: 1px solid #CFCFCF;
+      padding: 10px;
+      margin: 10px;
+    }
+    .shelf_name {
+      font-weight: bold;
+    }
+    .hotbook_list {
+      border: 1px solid #CFCFCF;
+      padding: 10px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    Welcome, we have
+    <span go:content="len(shelf.Books)"></span>
+    books in shelf <span go:content="quote(shelf.Name)"
+                         class="shelf_name"></span>:<br>
+    <div go:for="@loopvar, book: shelf.Books">
+      <div go:call="common.html#BookCard"
+           go:arg="book: book"
+           go:arg="loopvar: loopvar">
+      </div>
+    </div>
+  </div>
+
+  <div go:template="PriceTag"
+       go:arg="book: *data.Book = shelf.Books[0]"
+       id="0"
+       class="price-tag">
+    This book: <div go:content="book.Name"></div>
+    Price: <div go:content="floatformat(book.Price, 5)"></div>
+    <div go:replaceable="AuthorCard">
+      <span go:for="author: book.Authors"
+            go:content="author.FirstName + ' ' + author.LastName"
+            class="author_name"></span>
+    </div>
+  </div>
+
+  <div go:call="#PriceTag"
+       go:arg="book: shelf.Books[1]"
+       id="A">
+    <span go:replace="AuthorCard"
+          go:omit-tag="true">
+    </span>
+  </div>
+
+  <div go:call="#PriceTag"
+       go:arg="book: shelf.Books[2]"
+       id="B">
+    <span go:replace="AuthorCard">
+      Meet author:
+      <span go:omit-tag="true" go:content="shelf.Books[2].Authors[0].FirstName">
+    </span>
+  </div>
+
+  <div go:call="#PriceTag"
+       go:arg="book: shelf.Books[2]"
+       id="B">
+    <span go:replace="AuthorCard">
+      Meet author:
+      <span go:omit-tag="true" go:content="shelf.Books[3].Authors[0].FirstName">
+    </span>
+  </div>
+
+  <div go:call="common.html#HotBooks"
+       go:arg="books: shelf.Books">
+  </div>
+
+  <div go:call="common.html#HotBooks"
+       go:arg="books: shelf.Books">
+    <div go:replace="HotBook"
+         go:arg="book: *data.Book"
+         go:arg="idx: *runtime.LoopVar">
+      Book (<span go:content="idx.Counter0"></span>): <div go:content="book.Name"></div>
+      Author:
+      <div>
+        <span go:for="@idx1, author: book.Authors"
+              go:omit-tag="true">
+          <span go:if="idx1.Counter0 > 0"
+                go:omit-tag="true">, </span>
+          <span go:content="author.FirstName + ' ' + author.LastName"
+                class="author_name"></span>
+        </span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

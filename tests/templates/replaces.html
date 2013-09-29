@@ -1,0 +1,59 @@
+<html go:import="goats-html/tests/data">
+  <div go:template="Callable"
+       go:arg="blog: *data.Blog">
+    Blog: <span go:content="blog.Id"></span>
+    <div go:replaceable="Slot1"
+         go:arg="post1: *data.Post = blog.Posts[0]"
+         go:arg="post2: *data.Post = blog.Posts[1]">
+      First post:<br>
+      Id: <span go:content="post1.Id"></span><br>
+      Content: <span go:content="post1.Content"></span><br>
+
+      Second post:<br>
+      Id: <span go:content="post2.Id"></span><br>
+      Content: <span go:content="post2.Content"></span>
+    </div>
+
+    Hot Posts:<br>
+    <div go:replaceable="Slot2"
+         go:arg="post1: *data.Post = blog.Posts[0]"
+         go:arg="post2: *data.Post = blog.Posts[1]">
+      First hot post:<br>
+      Id: <span go:content="post1.Id"></span><br>
+      Content: <span go:content="post1.Content"></span><br>
+
+      Second hot post:<br>
+      Id: <span go:content="post2.Id"></span><br>
+      Content: <span go:content="post2.Content"></span>
+    </div>
+  </div>
+
+  <div go:template="CallWithoutReplace"
+       go:arg="blog: *data.Blog">
+    <div go:call="#Callable"
+         go:arg="blog: blog">
+      <div go:replace="Slot1">
+        Slot1 suppressed.
+      </div>
+    </div>
+  </div>
+
+  <div go:template="CallWithReplaces"
+       go:arg="blog: *data.Blog">
+    <div go:call="#Callable"
+         go:arg="blog: blog">
+      <div go:replace="Slot1"
+           go:arg="post1: *data.Post"
+           go:arg="post2: *data.Post">
+        Post Ids: <span go:content="post1.Id"></span>, <span go:content="post2.Id"></span>
+      </div>
+
+      <div go:replace="Slot2"
+           go:arg="post1: *data.Post"
+           go:arg="post2: *data.Post">
+        Post1 content: <span go:content="post1.Content"></span><br>
+        Post2 content: <span go:content="post2.Content"></span>
+      </div>
+    </div>
+  </div>
+</html>
