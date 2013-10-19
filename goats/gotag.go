@@ -132,6 +132,7 @@ func (t *GoTagProcessor) processSubseqTag(writer io.Writer, context *TagContext)
 				fmt.Sprintf("__impl.WriteString(\"%s\")\n",
 					strings.Replace(tagBuffer.String(), "\"", "\\\"", -1)))
 		} else {
+			io.WriteString(writer, "var __attrs = &runtime.TagAttrs{}\n")
 			t.genLocalAttrs(writer, context)
 			io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
 		}
