@@ -34,7 +34,7 @@ fmt: check-env
 	cd tests/data && go fmt .
 
 unittests: check-env
-	goats gen --package_root .. --template_dir goats-html/tests/templates/
+	../../bin/goats gen --package_root .. --template_dir goats-html/tests/templates/
 	go test goats-html/goats
 	go test goats-html/tests
 

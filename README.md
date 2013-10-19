@@ -266,7 +266,7 @@ Credits
 TODO List
 =========
 
-* (0.1.x) more built-in functions
+* (0.1.1) more built-in functions
 *
 * (0.2.0) developer server, auto populate and sample populate
 * (0.2.0) go:trans

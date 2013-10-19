@@ -156,6 +156,10 @@ func (bf *BuiltinFilter) Quote(a interface{}) string {
 	return fmt.Sprintf("\"%s\"", indirect(a))
 }
 
+func (bf *BuiltinFilter) Format(fmtStr string, a ...interface{}) string {
+	return fmt.Sprintf(fmtStr, a...)
+}
+
 func just(a interface{}, width int, left bool) string {
 	a = indirect(a)
 	s := a.(string)
@@ -181,3 +185,4 @@ func generateString(length int, char string) string {
 	}
 	return buffer.String()
 }
+
