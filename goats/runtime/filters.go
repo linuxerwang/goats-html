@@ -185,4 +185,3 @@ func generateString(length int, char string) string {
 	}
 	return buffer.String()
 }
-

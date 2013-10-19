@@ -58,8 +58,8 @@ func (t *GoTagProcessor) Process(writer io.Writer, context *TagContext) {
 	// There might be imports for constants or enums
 	for _, attr := range t.attrs {
 		if attr.Key == "go:attr" {
-			parts := strings.Split(attr.Val, ":")
-			context.MaybeAddImports(ToGoString(TrimWhiteSpaces(parts[1])))
+			_, varVal := SplitVarDef(attr.Val)
+			context.MaybeAddImports(ToGoString(TrimWhiteSpaces(varVal)))
 		}
 	}
 
@@ -159,10 +159,10 @@ func (t *GoTagProcessor) genConditionalTag(writer io.Writer) {
 func (t *GoTagProcessor) genLocalAttrs(writer io.Writer, context *TagContext) {
 	for _, attr := range t.attrs {
 		if attr.Key == "go:attr" {
-			parts := strings.Split(attr.Val, ":")
-			expr := context.RewriteExpression(parts[1])
+			varName, varVal := SplitVarDef(attr.Val)
+			expr := context.RewriteExpression(varVal)
 			io.WriteString(writer,
-				fmt.Sprintf("__attrs.AddAttr(\"%s\", %s)\n", TrimWhiteSpaces(parts[0]), expr))
+				fmt.Sprintf("__attrs.AddAttr(\"%s\", %s)\n", TrimWhiteSpaces(varName), expr))
 		} else if !strings.HasPrefix(attr.Key, "go:") {
 			// Static attrs
 			io.WriteString(writer,

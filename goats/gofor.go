@@ -98,10 +98,10 @@ func (f *GoForProcessor) Process(writer io.Writer, context *TagContext) {
 }
 
 func NewForProcessor(forLine string) *GoForProcessor {
-	parts := strings.Split(forLine, ":")
+	varName, varVal := SplitVarDef(forLine)
 	processor := &GoForProcessor{
-		varName:        TrimWhiteSpaces(parts[0]),
-		collectionName: TrimWhiteSpaces(parts[1]),
+		varName:        TrimWhiteSpaces(varName),
+		collectionName: TrimWhiteSpaces(varVal),
 	}
 	return processor
 }

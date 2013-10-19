@@ -178,3 +178,8 @@ func flatten(s *ast.SelectorExpr) string {
 	}
 	return buffer.String() + "." + s.Sel.Name
 }
+
+func SplitVarDef(varDef string) (string, string) {
+	idx := strings.Index(varDef, ":")
+	return varDef[:idx], varDef[idx+1:]
+}

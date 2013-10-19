@@ -35,10 +35,10 @@ func (v *GoVarProcessor) Process(writer io.Writer, context *TagContext) {
 }
 
 func newVarDef(varStr string) *VarDef {
-	parts := strings.Split(varStr, ":")
+	varName, varVal := SplitVarDef(varStr)
 	return &VarDef{
-		Name: TrimWhiteSpaces(parts[0]),
-		Val:  TrimWhiteSpaces(parts[1]),
+		Name: TrimWhiteSpaces(varName),
+		Val:  TrimWhiteSpaces(varVal),
 	}
 }
 

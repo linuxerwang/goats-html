@@ -281,7 +281,7 @@ var RegisteredFilters = map[string]*RegisteredFilter{
 	"cut":         builtinFilter,
 	"debug":       builtinFilter,
 	"floatformat": builtinFilter,
-	"format": builtinFilter,
+	"format":      builtinFilter,
 	"join":        builtinFilter,
 	"ljust":       builtinFilter,
 	"rjust":       builtinFilter,

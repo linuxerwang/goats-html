@@ -58,9 +58,9 @@ func (c *GoCallProcessor) Process(writer io.Writer, context *TagContext) {
 				io.WriteString(writer, "__hasOmitTag = true\n")
 				io.WriteString(writer, fmt.Sprintf("__omitTag = %s\n", context.RewriteExpression(attr.Val)))
 			} else if attr.Key == "go:attr" {
-				parts := strings.Split(attr.Val, ":")
-				expr := context.RewriteExpression(parts[1])
-				io.WriteString(writer, fmt.Sprintf("__callerAttrs.AddAttr(\"%s\", %s)\n", parts[0], expr))
+				varName, varVal := SplitVarDef(attr.Val)
+				expr := context.RewriteExpression(varVal)
+				io.WriteString(writer, fmt.Sprintf("__callerAttrs.AddAttr(\"%s\", %s)\n", varName, expr))
 			} else if !strings.HasPrefix(attr.Key, "go:") {
 				// Static attributes
 				io.WriteString(writer,
