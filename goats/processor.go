@@ -12,6 +12,7 @@ import (
 type TagContext struct {
 	imports map[string]bool
 	fitlers map[string]*RegisteredFilter
+	AutoEscape bool
 }
 
 func (ctx *TagContext) GetImports() map[string]bool {
@@ -200,6 +201,7 @@ func NewTagContext() *TagContext {
 	return &TagContext{
 		imports: map[string]bool{},
 		fitlers: map[string]*RegisteredFilter{},
+		AutoEscape: true,
 	}
 }
 

@@ -55,11 +55,15 @@ type GoTagProcessor struct {
 }
 
 func (t *GoTagProcessor) Process(writer io.Writer, context *TagContext) {
+	originalAutoEscape := context.AutoEscape
+
 	// There might be imports for constants or enums
 	for _, attr := range t.attrs {
 		if attr.Key == "go:attr" {
 			parts := strings.Split(attr.Val, ":")
 			context.MaybeAddImports(ToGoString(TrimWhiteSpaces(parts[1])))
+		} else if attr.Key == "go:autoescape" {
+			context.AutoEscape = (attr.Val == "true")
 		}
 	}
 
@@ -76,6 +80,8 @@ func (t *GoTagProcessor) Process(writer io.Writer, context *TagContext) {
 	}
 	// End local scope.
 	io.WriteString(writer, "}\n")
+
+	context.AutoEscape = originalAutoEscape
 }
 
 func (t *GoTagProcessor) processFirstTag(writer io.Writer, context *TagContext) {
@@ -182,6 +188,11 @@ func (t *GoTagProcessor) hasOnlyStaticAttrs() bool {
 }
 
 func (t *GoTagProcessor) processChildrenTags(writer io.Writer, context *TagContext) {
+	originalAutoEscape := context.AutoEscape
+	if t.tagName == "script" || t.tagName == "style" {
+		context.AutoEscape = false
+	}
+
 	head := NewHeadProcessor()
 	if t.next != nil {
 		head.SetNext(t.next)
@@ -194,6 +205,8 @@ func (t *GoTagProcessor) processChildrenTags(writer io.Writer, context *TagConte
 	})
 	tail.SetNext(callback)
 	head.Process(writer, context)
+
+	context.AutoEscape = originalAutoEscape
 }
 
 func (t *GoTagProcessor) maybeCloseTag(writer io.Writer) {

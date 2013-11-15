@@ -266,6 +266,7 @@ Credits
 TODO List
 =========
 
+* (0.1.1) go:autoescape
 * (0.1.x) more built-in functions
 *
 * (0.2.0) developer server, auto populate and sample populate
@@ -282,7 +283,6 @@ TODO List
 * (LOW PRI) support generic types in template args (GenericArray, GenericMap, GenericStruct)
 * (LOW PRI) css class name mangling
 * (LOW PRI) properly report go attr misuse
-* (LOW PRI) go:autoescape
 * (LOW PRI) Indent HTML
 * (LOW PRI) Ternary operator
 * (LOW PRI) customize filters

@@ -18,8 +18,8 @@ func IsMergeable(attrName string) bool {
 	return found
 }
 
-// indirect returns the value, after dereferencing as many times
-// as necessary to reach the base type (or nil).
+// Returns the value, after dereferencing as many times as necessary to reach
+// the base type (or nil).
 func indirect(a interface{}) interface{} {
 	if t := reflect.TypeOf(a); t.Kind() != reflect.Ptr {
 		// Avoid creating a reflect.Value if it's not a pointer.
@@ -30,6 +30,17 @@ func indirect(a interface{}) interface{} {
 		v = v.Elem()
 	}
 	return v.Interface()
+}
+
+func IndirectString(a interface{}) string {
+	switch a := a.(type) {
+	default:
+		return fmt.Sprintf("%v", a)
+	case string:
+		return a
+	case *string:
+		return *a
+	}
 }
 
 func EscapeAttr(attr string) string {
