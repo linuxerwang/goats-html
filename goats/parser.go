@@ -436,12 +436,6 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.N
 	} else if node.Type == html.ElementNode {
 		goAttrs := t.getAttrMap(node)
 
-		if val, ok := goAttrs["go:var"]; ok {
-			varProcessor := NewVarsProcessor(val)
-			preProcessor.SetNext(varProcessor)
-			preProcessor = varProcessor
-		}
-
 		if val, ok := goAttrs["go:if"]; ok {
 			ifProcessor := NewIfProcessor(val)
 			preProcessor.SetNext(ifProcessor)
@@ -452,6 +446,12 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.N
 			forProcessor := NewForProcessor(val)
 			preProcessor.SetNext(forProcessor)
 			preProcessor = forProcessor
+		}
+
+		if val, ok := goAttrs["go:var"]; ok {
+			varProcessor := NewVarsProcessor(val)
+			preProcessor.SetNext(varProcessor)
+			preProcessor = varProcessor
 		}
 
 		if val, ok := goAttrs["go:case"]; ok {
