@@ -13,8 +13,12 @@ type GoContentProcessor struct {
 func (c *GoContentProcessor) Process(writer io.Writer, context *TagContext) {
 	expr := context.RewriteExpression(c.expression)
 
-	io.WriteString(writer,
-		fmt.Sprintf("__impl.WriteString(runtime.EscapeContent(%s))\n", expr))
+	if context.AutoEscape {
+		io.WriteString(writer, fmt.Sprintf("__impl.WriteString(runtime.EscapeContent(%s))\n", expr))
+	} else {
+		io.WriteString(writer, fmt.Sprintf("__impl.WriteString(runtime.IndirectString(%s))\n", expr))
+	}
+
 	// go:content is a terminal processor.
 }
 

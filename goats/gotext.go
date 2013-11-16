@@ -29,7 +29,10 @@ func (i *GoTextProcessor) Process(writer io.Writer, context *TagContext) {
 		if hasTrailingSpace {
 			text = text + " "
 		}
-		io.WriteString(writer, fmt.Sprintf("__impl.WriteString(\"%s\")", html.EscapeString(text)))
+		if context.AutoEscape {
+			text = html.EscapeString(text)
+		}
+		io.WriteString(writer, fmt.Sprintf("__impl.WriteString(\"%s\")", text))
 		io.WriteString(writer, "\n")
 	}
 	// go text is a terminal processor.
