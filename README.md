@@ -270,6 +270,7 @@ TODO List
 * (0.1.1) go:autoescape
 * (0.1.1) fix name/value splitting error in go:var/go:attr.
 * (0.1.1) fix __attrs leaking in embedded tags
+* (0.1.1) fix tag attributes mixing issue.
 *
 * (0.2.0) developer server, auto populate and sample populate
 * (0.2.0) go:trans

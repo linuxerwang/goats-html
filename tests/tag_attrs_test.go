@@ -6,7 +6,6 @@ import (
 	"testing"
 )
 
-
 func TestTagAttrsInLoop(t *testing.T) {
 	args := &tmpl.TagAttrsInLoopTemplateArgs{
 		Names: []string{

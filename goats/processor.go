@@ -10,8 +10,8 @@ import (
 )
 
 type TagContext struct {
-	imports map[string]bool
-	fitlers map[string]*RegisteredFilter
+	imports    map[string]bool
+	fitlers    map[string]*RegisteredFilter
 	AutoEscape bool
 }
 
@@ -199,8 +199,8 @@ func (ctx *TagContext) findSelector(expr string) *SelectorInstance {
 
 func NewTagContext() *TagContext {
 	return &TagContext{
-		imports: map[string]bool{},
-		fitlers: map[string]*RegisteredFilter{},
+		imports:    map[string]bool{},
+		fitlers:    map[string]*RegisteredFilter{},
 		AutoEscape: true,
 	}
 }
