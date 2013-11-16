@@ -1,0 +1,14 @@
+<html>
+  <div go:template="TagAttrsInLoop"
+       go:arg="names: []string">
+    <notag go:for="@idx, name: names"
+           go:omit-tag="true">
+      <input go:attr="id: name"
+             go:attr="value: name"
+             type="radio">
+      <label go:attr="for: name"
+             go:content="name"></label>
+      <br go:if="!idx.Last">
+    </notag>
+  </div>
+</html>
