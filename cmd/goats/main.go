@@ -13,9 +13,6 @@ var commands = []*Command{
 	versionCmd,
 }
 
-func init() {
-}
-
 func main() {
 	flag.Parse()
 

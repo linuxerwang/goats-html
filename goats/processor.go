@@ -86,8 +86,7 @@ func (ctx *TagContext) RewriteExpression(originalExpr string) string {
 	for filter := ctx.findFilter(expr); filter != nil; filter = ctx.findFilter(expr) {
 		var converted string
 		if filter.Params != "" {
-			converted = fmt.Sprintf("__impl.%s(%s)",
-				filter.Name, filter.Params)
+			converted = fmt.Sprintf("__impl.%s(%s)", filter.Name, filter.Params)
 		} else {
 			converted = fmt.Sprintf("__impl.%s(%s)", filter.Name, expr[filter.Start-1:filter.Pivot-1])
 		}
@@ -278,29 +277,33 @@ var builtinFilter = &RegisteredFilter{
 }
 
 var RegisteredFilters = map[string]*RegisteredFilter{
-	"capfirst":    builtinFilter,
-	"center":      builtinFilter,
-	"cut":         builtinFilter,
-	"debug":       builtinFilter,
-	"floatformat": builtinFilter,
-	"format":      builtinFilter,
-	"join":        builtinFilter,
-	"ljust":       builtinFilter,
-	"rjust":       builtinFilter,
-	"title":       builtinFilter,
-	"quote":       builtinFilter,
+	"capfirst":     builtinFilter,
+	"center":       builtinFilter,
+	"cut":          builtinFilter,
+	"debug":        builtinFilter,
+	"floatformat":  builtinFilter,
+	"format":       builtinFilter,
+	"join":         builtinFilter,
+	"ljust":        builtinFilter,
+	"rjust":        builtinFilter,
+	"title":        builtinFilter,
+	"quote":        builtinFilter,
+	"unixdate":     builtinFilter,
+	"unixnanodate": builtinFilter,
 }
 
 var builtinFuncs = map[string]string{
-	"center":      "Center",
-	"cut":         "Cut",
-	"debug":       "Debug",
-	"floatformat": "FloatFormat",
-	"format":      "Format",
-	"join":        "Join",
-	"len":         "Length",
-	"ljust":       "Ljust",
-	"rjust":       "Rjust",
-	"title":       "Title",
-	"quote":       "Quote",
+	"center":       "Center",
+	"cut":          "Cut",
+	"debug":        "Debug",
+	"floatformat":  "FloatFormat",
+	"format":       "Format",
+	"join":         "Join",
+	"len":          "Length",
+	"ljust":        "Ljust",
+	"rjust":        "Rjust",
+	"title":        "Title",
+	"quote":        "Quote",
+	"unixdate":     "UnixDate",
+	"unixnanodate": "UnixNanoDate",
 }

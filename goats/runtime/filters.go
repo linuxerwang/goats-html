@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"reflect"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -184,4 +185,27 @@ func generateString(length int, char string) string {
 		buffer.WriteString(char)
 	}
 	return buffer.String()
+}
+
+// Example:
+//     <div go:content="unixdate('01/02/2006 15:04:05'), 1390637053836182000"></div>
+func (bf *BuiltinFilter) UnixDate(format string, a interface{}) string {
+	return time.Unix(convertTime(a), 0).Format(format)
+}
+
+// Example:
+//     <div go:content="unixnanodate('01/02/2006 15:04:05'), 1390637053836182000"></div>
+func (bf *BuiltinFilter) UnixNanoDate(format string, a interface{}) string {
+	return time.Unix(0, convertTime(a)).Format(format)
+}
+
+func convertTime(a interface{}) int64 {
+	a = indirect(a)
+	switch a := a.(type) {
+	case int64:
+		return a
+	case uint64:
+		return int64(a)
+	}
+	return 0
 }
