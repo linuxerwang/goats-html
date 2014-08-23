@@ -454,6 +454,12 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.N
 			preProcessor = varProcessor
 		}
 
+		if val, ok := goAttrs["go:settings"]; ok {
+			settingsProcessor := NewSettingsProcessor(val)
+			preProcessor.SetNext(settingsProcessor)
+			preProcessor = settingsProcessor
+		}
+
 		if val, ok := goAttrs["go:case"]; ok {
 			caseProcessor := NewCaseProcessor(val)
 			preProcessor.SetNext(caseProcessor)

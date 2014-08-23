@@ -17,6 +17,7 @@ type LoopVar struct {
 
 type TemplateSettings struct {
 	OmitDocType bool
+	DebugMode   bool
 }
 
 type CallerAttrsFunc func() (TagAttrs, bool, bool)
