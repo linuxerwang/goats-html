@@ -20,6 +20,8 @@ clean: check-env
 
 binary: check-env
 	make clean
+	go get code.google.com/p/go.net/html
+	go get github.com/howeyc/fsnotify
 	go install goats-html/cmd/goats
 	rm $(GOATS_GOPATH)/../pkg/$(version_folder)/goats-html/* -rf
 
