@@ -691,15 +691,19 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 				if node.Data == "html" {
 					needsDocType = true
 				}
-			} else if attr.Key == "go:arg" {
-				arg := NewArgDef(attr.Val)
-				args = append(args, arg)
-				if pkgImport, ok := p.Imports[arg.PkgName]; ok {
-					imports[arg.PkgName] = pkgImport
-				}
 			}
 		}
 		if templateName != "" {
+			for _, attr := range node.Attr {
+				if attr.Key == "go:arg" {
+					arg := NewArgDef(attr.Val)
+					args = append(args, arg)
+					if pkgImport, ok := p.Imports[arg.PkgName]; ok {
+						imports[arg.PkgName] = pkgImport
+					}
+				}
+			}
+
 			template := NewGoatsTemplate(p, templateName, args, node, needsDocType, imports)
 			p.Templates[templateName] = template
 			p.findReplaceables(node, template)
@@ -730,6 +734,7 @@ func (p *GoatsParser) findReplaceables(node *html.Node, template *GoatsTemplate)
 		replaceable := &GoatsReplaceable{
 			Args: []*Argument{},
 		}
+
 		for _, attr := range c.Attr {
 			if attr.Key == "go:template" {
 				if foundTemplate {
@@ -744,15 +749,23 @@ func (p *GoatsParser) findReplaceables(node *html.Node, template *GoatsTemplate)
 				replaceable.Name = attr.Val
 				replaceable.HiddenName = ToHiddenName(attr.Val)
 				template.Replaceables = append(template.Replaceables, replaceable)
-			} else if attr.Key == "go:arg" {
-				replaceable.Args = append(replaceable.Args, NewArgDef(attr.Val))
 			}
 		}
+
 		if foundTemplate && foundReplaceable {
 			log.Fatal("go:template can not be on the same node which has go:replaceable.")
 		}
+
 		if !foundTemplate {
 			p.findReplaceables(c, template)
+		}
+
+		if foundReplaceable {
+			for _, attr := range c.Attr {
+				if attr.Key == "go:arg" {
+					replaceable.Args = append(replaceable.Args, NewArgDef(attr.Val))
+				}
+			}
 		}
 	}
 }

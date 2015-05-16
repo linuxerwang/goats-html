@@ -59,10 +59,7 @@ func (t *GoTagProcessor) Process(writer io.Writer, context *TagContext) {
 
 	// There might be imports for constants or enums
 	for _, attr := range t.attrs {
-		if attr.Key == "go:attr" {
-			_, varVal := SplitVarDef(attr.Val)
-			context.MaybeAddImports(ToGoString(TrimWhiteSpaces(varVal)))
-		} else if attr.Key == "go:autoescape" {
+		if attr.Key == "go:autoescape" {
 			context.AutoEscape = (attr.Val == "true")
 		}
 	}
@@ -167,9 +164,10 @@ func (t *GoTagProcessor) genLocalAttrs(writer io.Writer, context *TagContext) {
 	for _, attr := range t.attrs {
 		if attr.Key == "go:attr" {
 			varName, varVal := SplitVarDef(attr.Val)
-			expr := context.RewriteExpression(varVal)
-			io.WriteString(writer,
-				fmt.Sprintf("__attrs.AddAttr(\"%s\", %s)\n", TrimWhiteSpaces(varName), expr))
+			context.ExprParser.Evaluate(varVal, writer, func(expr string) {
+				io.WriteString(writer,
+					fmt.Sprintf("__attrs.AddAttr(\"%s\", %s)\n", varName, expr))
+			})
 		} else if !strings.HasPrefix(attr.Key, "go:") {
 			// Static attrs
 			io.WriteString(writer,

@@ -37,12 +37,12 @@ func (c *GoCallProcessor) Process(writer io.Writer, context *TagContext) {
 	// Start of local scope
 	io.WriteString(writer, "{\n")
 
-	io.WriteString(writer, fmt.Sprintf("__args := &%s {\n", argType))
+	io.WriteString(writer, fmt.Sprintf("__args := &%s {}\n", argType))
 	for _, argDef := range c.args {
-		expr := context.RewriteExpression(argDef.Val)
-		io.WriteString(writer, ToPublicName(argDef.Name)+": "+expr+",\n")
+		context.ExprParser.Evaluate(argDef.Val, writer, func(expr string) {
+			io.WriteString(writer, fmt.Sprintf("__args.%s = %s\n", ToPublicName(argDef.Name), expr))
+		})
 	}
-	io.WriteString(writer, "}\n")
 
 	// Call template.
 	io.WriteString(writer,
@@ -59,8 +59,9 @@ func (c *GoCallProcessor) Process(writer io.Writer, context *TagContext) {
 				io.WriteString(writer, fmt.Sprintf("__omitTag = %s\n", context.RewriteExpression(attr.Val)))
 			} else if attr.Key == "go:attr" {
 				varName, varVal := SplitVarDef(attr.Val)
-				expr := context.RewriteExpression(varVal)
-				io.WriteString(writer, fmt.Sprintf("__callerAttrs.AddAttr(\"%s\", %s)\n", varName, expr))
+				context.ExprParser.Evaluate(varVal, writer, func(expr string) {
+					io.WriteString(writer, fmt.Sprintf("__callerAttrs.AddAttr(\"%s\", %s)\n", varName, expr))
+				})
 			} else if !strings.HasPrefix(attr.Key, "go:") {
 				// Static attributes
 				io.WriteString(writer,

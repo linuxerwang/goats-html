@@ -5,11 +5,28 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"goats-html/goats/expl"
 	"io"
 	"strings"
 )
 
+type FilterInstance struct {
+	Name   string
+	Start  token.Pos
+	End    token.Pos
+	Pivot  token.Pos // Unused
+	Params string
+}
+
+type SelectorInstance struct {
+	Name    string
+	NewName string
+	Start   token.Pos
+	End     token.Pos
+}
+
 type TagContext struct {
+	ExprParser *expl.ExprParser
 	imports    map[string]bool
 	fitlers    map[string]*RegisteredFilter
 	AutoEscape bool
@@ -23,7 +40,6 @@ func (ctx *TagContext) GetFilters() map[string]*RegisteredFilter {
 	return ctx.fitlers
 }
 
-// Deprecated
 func (ctx *TagContext) MaybeAddImports(expression string) {
 	expression = TrimWhiteSpaces(expression)
 	if expression == "" {
@@ -44,21 +60,6 @@ func (ctx *TagContext) MaybeAddImports(expression string) {
 		}
 		return true
 	})
-}
-
-type FilterInstance struct {
-	Name   string
-	Start  token.Pos
-	End    token.Pos
-	Pivot  token.Pos // Unused
-	Params string
-}
-
-type SelectorInstance struct {
-	Name    string
-	NewName string
-	Start   token.Pos
-	End     token.Pos
 }
 
 func (ctx *TagContext) RewriteExpression(originalExpr string) string {
@@ -161,6 +162,9 @@ func (ctx *TagContext) findNonBuiltinFunc(expr string) string {
 					funcName = y.Name
 					return false
 				}
+			case *ast.SelectorExpr:
+				funcName = expr[y.Pos()-1:y.End()-1] + "()"
+				return false
 			default:
 				panic("Function call has no name.  This is impossible.")
 			}
@@ -197,11 +201,13 @@ func (ctx *TagContext) findSelector(expr string) *SelectorInstance {
 }
 
 func NewTagContext() *TagContext {
-	return &TagContext{
+	tc := &TagContext{
 		imports:    map[string]bool{},
 		fitlers:    map[string]*RegisteredFilter{},
 		AutoEscape: true,
 	}
+	tc.ExprParser = expl.NewExprParser(tc)
+	return tc
 }
 
 type Processor interface {

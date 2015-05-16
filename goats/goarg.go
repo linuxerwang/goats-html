@@ -29,7 +29,7 @@ func NewArgDef(argDef string) *Argument {
 		argName = TrimWhiteSpaces(argDef[:colon])
 		if equal > -1 && equal < len(argDef) {
 			argType = TrimWhiteSpaces(argDef[colon+1 : equal])
-			argVal = TrimWhiteSpaces(argDef[equal+1:])
+			argVal = ToGoString(TrimWhiteSpaces(argDef[equal+1:]))
 		} else {
 			argType = TrimWhiteSpaces(argDef[colon+1:])
 		}
@@ -57,7 +57,7 @@ func NewArgCall(argCall string) *Argument {
 	var argName, argVal string
 	colon := strings.Index(argCall, ":")
 	argName = TrimWhiteSpaces(argCall[:colon])
-	argVal = ToCamelExpr(TrimWhiteSpaces(argCall[colon+1:]))
+	argVal = ToCamelExpr(ToGoString(TrimWhiteSpaces(argCall[colon+1:])))
 
 	return &Argument{
 		Name: argName,

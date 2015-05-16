@@ -21,9 +21,10 @@ func (v *GoVarProcessor) Process(writer io.Writer, context *TagContext) {
 	io.WriteString(writer, "{\n")
 
 	for _, varDef := range v.vars {
-		expr := context.RewriteExpression(varDef.Val)
-		io.WriteString(writer, fmt.Sprintf("%s := %s", varDef.Name, expr))
-		io.WriteString(writer, "\n")
+		context.ExprParser.Evaluate(varDef.Val, writer, func(expr string) {
+			io.WriteString(writer, fmt.Sprintf("%s := %s", varDef.Name, expr))
+			io.WriteString(writer, "\n")
+		})
 	}
 
 	if v.next != nil {

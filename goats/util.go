@@ -181,5 +181,5 @@ func flatten(s *ast.SelectorExpr) string {
 
 func SplitVarDef(varDef string) (string, string) {
 	idx := strings.Index(varDef, ":")
-	return varDef[:idx], varDef[idx+1:]
+	return TrimWhiteSpaces(varDef[:idx]), ToGoString(TrimWhiteSpaces(varDef[idx+1:]))
 }
