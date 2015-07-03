@@ -2,7 +2,6 @@ package goats
 
 import (
 	"bytes"
-	"code.google.com/p/go.net/html"
 	"fmt"
 	"go/format"
 	"io"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	txttpl "text/template"
 	"time"
+
+	"golang.org/x/net/html"
 )
 
 const (

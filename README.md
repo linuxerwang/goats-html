@@ -81,7 +81,7 @@ GO programs which will be compiled into your binary.
 Install dependent packages
 --------------------------
 
-    $ go get code.google.com/p/go.net/html
+    $ go get golang.org/x/net/html
     $ go get github.com/howeyc/fsnotify
 
 Build

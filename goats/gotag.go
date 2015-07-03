@@ -2,11 +2,12 @@ package goats
 
 import (
 	"bytes"
-	"code.google.com/p/go.net/html"
 	"fmt"
-	"goats-html/goats/runtime"
 	"io"
 	"strings"
+
+	"goats-html/goats/runtime"
+	"golang.org/x/net/html"
 )
 
 /**

@@ -2,8 +2,9 @@ package goats
 
 import (
 	"bytes"
-	"code.google.com/p/go.net/html"
 	"testing"
+
+	"golang.org/x/net/html"
 )
 
 func TestNewDocTypeProcessor(t *testing.T) {

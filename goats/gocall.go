@@ -1,10 +1,11 @@
 package goats
 
 import (
-	"code.google.com/p/go.net/html"
 	"fmt"
 	"io"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 type Replacement struct {

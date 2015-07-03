@@ -5,9 +5,10 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"goats-html/goats/expl"
 	"io"
 	"strings"
+
+	"goats-html/goats/expl"
 )
 
 type FilterInstance struct {
