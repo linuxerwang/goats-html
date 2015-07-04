@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"goats-html/goats"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/linuxerwang/goats-html"
 )
 
 var genCmd = &Command{

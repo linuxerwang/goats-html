@@ -2,8 +2,9 @@ package tests
 
 import (
 	"bytes"
-	tmpl "goats-html/tests/templates/tag_mixed_attrs_html"
 	"testing"
+
+	tmpl "github.com/linuxerwang/goats-html/tests/templates/tag_mixed_attrs_html"
 )
 
 // ========== Tests for rendering go:template tags, first tag ==========

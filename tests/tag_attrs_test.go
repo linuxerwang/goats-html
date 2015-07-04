@@ -2,8 +2,9 @@ package tests
 
 import (
 	"bytes"
-	tmpl "goats-html/tests/templates/tag_attrs_html"
 	"testing"
+
+	tmpl "github.com/linuxerwang/goats-html/tests/templates/tag_attrs_html"
 )
 
 func TestTagAttrsInLoop(t *testing.T) {

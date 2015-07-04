@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"goats-html/goats/runtime"
+	"github.com/linuxerwang/goats-html/runtime"
 	"golang.org/x/net/html"
 )
 

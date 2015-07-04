@@ -39,44 +39,12 @@ modified the template (as long as the template interface was not changed).
 Both the template generator and the dev server is provided the command goats.
 
 
-Download the Prebuilt Debian/Ubuntu Package
-===========================================
+Go-Get and Install
+==================
 
-Download the [deb package](https://github.com/linuxerwang/goats-html/blob/master/binaries/goats-html_0.1.0_amd64.deb?raw=true).
-
-Install and Setup
------------------
-
-    $ sudo dpkg -i goats-html_0.1.0_amd64.deb
-
-Now you need to setup your GOPATH to include the goats sources:
-
-    $ export GOPATH=$GOPATH:/usr/share/goats-html/go
-
-Once it's installed, you can generate GO programs from your template (suppose
-your current working directory is in $GOPATH):
-
-    $ goats gen --template_dir goats-html/example
-
-If you are not in $GOPATH, you need to specify the path to the top source
-directory:
-
-    $ goats gen --package_root --template_dir goats-html/example
-
-The output directory is by default the same as the template directory, but
-you can specify differently:
-
-    $ goats gen --template_dir goats-html/example --output_dir goats-html/mypkg
-
-
-Build from Source Code
-======================
-
-GOATS consists of two parts: the goats command, and the runtime library.
-The command "goats" should be put into a place where you can execute without
-the absolute path, such as "/usr/bin". The runtime library contains a set of
-GO programs which will be compiled into your binary.
-
+Since version 0.2.0, goats-html switched to the normal go-get instead of debian
+package. This is to make the installation easier because now most gophers are
+more comfortable to work with go-get.
 
 Install dependent packages
 --------------------------
@@ -84,24 +52,21 @@ Install dependent packages
     $ go get golang.org/x/net/html
     $ go get github.com/howeyc/fsnotify
 
-Build
------
+Install goats-html
+------------------
+To install goats-html, simply run these commands:
 
-Checkout the code in your GOPATH, in my case it's ~/go/src:
+    $ go get -u github.com/linuxerwang/goats-html
+    $ go install github.com/linuxerwang/goats-html/goats
 
-    $ cd ~/go/src
-    $ git clone https://github.com/linuxerwang/goats-html
+Suppose you've added $GOPATH/bin to $PATH, you can build template with:
 
-Setup the GOATS_GOPATH (this is only needed to build GOATS itself, you don't
-need this environment for your application):
+    $ goats gen --template_dir goats-html/example
 
-    $ export GOATS_GOPATH=~/go/src
-    $ cd goats-html
-    $ make
+The output directory is by default the same as the template directory, but
+you can specify differently:
 
-or to create Debian/Ubuntu packages on x86_64:
-
-    $ make amd64
+    $ goats gen --template_dir goats-html/example --output_dir goats-html/mypkg
 
 
 Run the Example Program

@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"goats-html/examples/common_html"
-	"goats-html/examples/data"
-	"goats-html/examples/shelf_view_html"
-	"goats-html/goats/runtime"
 	"log"
 	"os"
 	goruntime "runtime"
 	"runtime/pprof"
 	"time"
+
+	"github.com/linuxerwang/goats-html/examples/common_html"
+	"github.com/linuxerwang/goats-html/examples/data"
+	"github.com/linuxerwang/goats-html/examples/shelf_view_html"
+	"github.com/linuxerwang/goats-html/runtime"
 )
 
 var cpuprofile = flag.String("cpuprofile", "", "Write cpu profile to file")

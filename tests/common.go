@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"goats-html/goats/runtime"
+	"github.com/linuxerwang/goats-html/runtime"
 )
 
 var settings runtime.TemplateSettings

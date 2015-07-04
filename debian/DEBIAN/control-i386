@@ -1,7 +1,0 @@
-Package: goats-html
-Version: 0.1.0
-Architecture: i386
-Maintainer: linuxerwang@gmail.com
-Section: Programming
-Priority: optional
-Description: GOATS (GO Attribute-based Template System) for HTML.

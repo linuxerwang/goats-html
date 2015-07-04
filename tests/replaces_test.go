@@ -2,9 +2,10 @@ package tests
 
 import (
 	"bytes"
-	"goats-html/tests/data"
-	tmpl "goats-html/tests/templates/replaces_html"
 	"testing"
+
+	"github.com/linuxerwang/goats-html/tests/data"
+	tmpl "github.com/linuxerwang/goats-html/tests/templates/replaces_html"
 )
 
 func TestWithoutReplace(t *testing.T) {

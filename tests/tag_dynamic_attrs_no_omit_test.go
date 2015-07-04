@@ -2,8 +2,9 @@ package tests
 
 import (
 	"bytes"
-	tmpl "goats-html/tests/templates/tag_dynamic_attrs_no_omit_html"
 	"testing"
+
+	tmpl "github.com/linuxerwang/goats-html/tests/templates/tag_dynamic_attrs_no_omit_html"
 )
 
 // ========== Tests for rendering go:template tags, first tag ==========

@@ -1,11 +1,12 @@
 package main
 
 import (
-	"goats-html/examples/data"
-	tmpl "goats-html/examples/shelf_view_html"
-	"goats-html/goats/runtime"
 	"log"
 	"net/http"
+
+	"github.com/linuxerwang/goats-html/examples/data"
+	tmpl "github.com/linuxerwang/goats-html/examples/shelf_view_html"
+	"github.com/linuxerwang/goats-html/goats/runtime"
 )
 
 var (

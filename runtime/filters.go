@@ -50,7 +50,7 @@ func (bf *BuiltinFilter) inspect(name string, a interface{}, writer io.Writer) {
 		}
 		io.WriteString(writer, "}<br>")
 	default:
-		io.WriteString(writer, fmt.Sprintf("%s (%s): %v<br>", name, t.String(), a))
+		io.WriteString(writer, fmt.Sprintf("%s (%s): %+v<br>", name, t.String(), a))
 	}
 	io.WriteString(writer, "</div>")
 }

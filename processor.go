@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"goats-html/goats/expl"
+	"github.com/linuxerwang/goats-html/expl"
 )
 
 type FilterInstance struct {

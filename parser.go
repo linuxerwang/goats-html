@@ -26,7 +26,7 @@ const (
 const TemplateInterfaceFile = ("package {{.PkgName}}\n" +
 	"\n" +
 	"import (\n" +
-	"  \"goats-html/goats/runtime\"\n" +
+	"  \"github.com/linuxerwang/goats-html/runtime\"\n" +
 	"  @@IMPORT@@\n" +
 	")\n" +
 	"\n" +
@@ -54,7 +54,7 @@ const TemplateImplFile = ("// +build !goats_devmod\n" +
 	"package {{.PkgName}}\n" +
 	"\n" +
 	"import (\n" +
-	"  \"goats-html/goats/runtime\"\n" +
+	"  \"github.com/linuxerwang/goats-html/runtime\"\n" +
 	"  \"io\"\n" +
 	"  @@IMPORT@@\n" +
 	")\n" +
@@ -91,7 +91,7 @@ const TemplateProxyFile = ("// +build goats_devmod\n" +
 	"package {{.PkgName}}\n" +
 	"\n" +
 	"import (\n" +
-	"  \"goats-html/goats/runtime\"\n" +
+	"  \"github.com/linuxerwang/goats-html/runtime\"\n" +
 	"  \"io\"\n" +
 	")\n" +
 	"\n" +
@@ -127,7 +127,7 @@ const TemplateMainFile = ("package main\n\n" +
 	"import(\n" +
 	"  \"bytes\"\n" +
 	"  \"{{.Pkg}}\"\n" +
-	"  \"goats-html/goats/runtime\"\n" +
+	"  \"github.com/linuxerwang/goats-html/runtime\"\n" +
 	"  \"os\"\n" +
 	")\n\n" +
 	"func main() {\n" +

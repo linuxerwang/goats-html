@@ -26,7 +26,7 @@ func TestNewVarProcessor(t *testing.T) {
 	if !dummy.Called {
 		t.Errorf("Expect calling the dummy processor but was not.")
 	}
-	if result.String() != "{\nbook := bookshelf.Books[0]\nDUMMY}\n" {
+	if result.String() != "{\nbook := bookshelf.Books[0]\n\nDUMMY}\n" {
 		t.Errorf("Expected var block was not found. ", result.String())
 	}
 }
@@ -43,7 +43,7 @@ func TestNewVarsProcessor(t *testing.T) {
 	if !dummy.Called {
 		t.Errorf("Expect calling the dummy processor but was not.")
 	}
-	if result.String() != "{\nbook := bookshelf.Books[0]\nauthor := book.Authors[0]\nDUMMY}\n" {
+	if result.String() != "{\nbook := bookshelf.Books[0]\n\nauthor := book.Authors[0]\n\nDUMMY}\n" {
 		t.Errorf("Expected vars block was not found. ", result.String())
 	}
 }
