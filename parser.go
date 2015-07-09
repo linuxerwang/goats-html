@@ -23,127 +23,143 @@ const (
 	TagProcessingGoSwitch
 )
 
-const TemplateInterfaceFile = ("package {{.PkgName}}\n" +
-	"\n" +
-	"import (\n" +
-	"  \"github.com/linuxerwang/goats-html/runtime\"\n" +
-	"  @@IMPORT@@\n" +
-	")\n" +
-	"\n" +
-	"type {{.Name}}TemplateArgs struct {\n" +
-	"{{range .Args}} {{.Declare}}\n{{end}}" +
-	"}\n" +
-	"\n" +
-	"{{$tmplName := .Name}}" +
-	"{{range .Replaceables}}" +
-	"type {{$tmplName}}{{.Name}}ReplArgs struct {\n" +
-	"  {{range .Args}} {{.Declare}}\n{{end}}" +
-	"}\n" +
-	"type {{$tmplName}}{{.Name}}ReplFunc func(*{{$tmplName}}{{.Name}}ReplArgs)\n\n" +
-	"{{end}}" +
-	"type {{.Name}}Template interface {\n" +
-	"  runtime.Template\n" +
-	"  Render(*{{.Name}}TemplateArgs) error\n" +
-	"{{range .Replaceables}}" +
-	"  Replace{{.Name}}({{$tmplName}}{{.Name}}ReplFunc)\n" +
-	"{{end}}" +
-	"}")
+const TemplateInterfaceFile = (`package {{.PkgName}}
 
-const TemplateImplFile = ("// +build !goats_devmod\n" +
-	"\n" +
-	"package {{.PkgName}}\n" +
-	"\n" +
-	"import (\n" +
-	"  \"github.com/linuxerwang/goats-html/runtime\"\n" +
-	"  \"io\"\n" +
-	"  @@IMPORT@@\n" +
-	")\n" +
-	"\n" +
-	"{{$tmplName := .Name}}" +
-	"type {{$tmplName}}TemplateImpl struct {\n" +
-	"  *runtime.BaseTemplate\n" +
-	"  builtinFilter *runtime.BuiltinFilter\n" +
-	"{{range .Replaceables}}" +
-	"  {{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc\n" +
-	"{{end}}" +
-	"}\n" +
-	"\n" +
-	"func (__impl *{{$tmplName}}TemplateImpl) Render(__args *{{.Name}}TemplateArgs) error {\n" +
-	"  @@RENDER@@\n" +
-	"  return nil\n" +
-	"}\n" +
-	"\n" +
-	"{{range .Replaceables}}" +
-	"  func (__impl *{{$tmplName}}TemplateImpl) Replace{{.Name}}({{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc) {\n" +
-	"    __impl.{{.HiddenName}} = {{.HiddenName}}\n" +
-	"}\n\n" +
-	"{{end}}" +
-	"\n" +
-	"func New{{.Name}}Template(writer io.Writer, settings *runtime.TemplateSettings) {{.Name}}Template {\n" +
-	"  template := &{{.Name}}TemplateImpl{}\n" +
-	"  template.BaseTemplate = runtime.NewBaseTemplate(writer, settings)\n" +
-	"  template.builtinFilter = runtime.NewBuiltinFilter()\n" +
-	"  return template\n" +
-	"}\n")
+import (
+	"github.com/linuxerwang/goats-html/runtime"
+	@@IMPORT@@
+)
 
-const TemplateProxyFile = ("// +build goats_devmod\n" +
-	"\n" +
-	"package {{.PkgName}}\n" +
-	"\n" +
-	"import (\n" +
-	"  \"github.com/linuxerwang/goats-html/runtime\"\n" +
-	"  \"io\"\n" +
-	")\n" +
-	"\n" +
-	"{{$tmplName := .Name}}" +
-	"type {{.HiddenName}}TemplateProxy struct {\n" +
-	"  *runtime.BaseTemplate\n" +
-	"{{range .Replaceables}}  {{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc\n{{end}}" +
-	"}\n" +
-	"\n" +
-	"func (__proxy *{{.HiddenName}}TemplateProxy) Render(args *{{.Name}}TemplateArgs) error {\n" +
-	"  err := runtime.CallRpc(\"{{.Pkg}}\",\n" +
-	"    \"{{.Name}}\",\n" +
-	"    __proxy.GetSettings(),\n" +
-	"    args,\n" +
-	"    __proxy.GetWriter())\n" +
-	"  return err\n" +
-	"}\n" +
-	"\n" +
-	"{{$name := .HiddenName}}" +
-	"\n" +
-	"{{range .Replaceables}}  func (__impl *{{$name}}TemplateProxy) Replace{{.Name}}({{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc) {\n" +
-	"  __impl.{{.HiddenName}} = {{.HiddenName}}\n" +
-	"}\n\n" +
-	"{{end}}" +
-	"\n" +
-	"func New{{.Name}}Template(writer io.Writer, settings *runtime.TemplateSettings) {{.Name}}Template {\n" +
-	"  template := &{{.HiddenName}}TemplateProxy{}\n" +
-	"  template.BaseTemplate = runtime.NewBaseTemplate(writer, settings)\n" +
-	"  return template\n" +
-	"}")
+type {{.Name}}TemplateArgs struct {
+	{{range .Args}} {{.Declare}}
+{{end}}
+}
 
-const TemplateMainFile = ("package main\n\n" +
-	"import(\n" +
-	"  \"bytes\"\n" +
-	"  \"{{.Pkg}}\"\n" +
-	"  \"github.com/linuxerwang/goats-html/runtime\"\n" +
-	"  \"os\"\n" +
-	")\n\n" +
-	"func main() {\n" +
-	"  settings := runtime.TemplateSettings{}\n" +
-	"  var buffer bytes.Buffer\n" +
-	"  switch os.Args[1] {\n" +
-	"{{range .Templates}}  case \"{{.Name}}\":" +
-	"    args := {{.PkgName}}.{{.Name}}TemplateArgs{}\n" +
-	"    runtime.DecodeRpcRequestOrFail(os.Stdin, &settings, &args)\n" +
-	"    template := {{.PkgName}}.New{{.Name}}Template(&buffer, &settings)\n" +
-	"    template.Render(&args)\n{{end}}" +
-	"  default:\n" +
-	"    panic(\"Unknown template name: \" + os.Args[1])\n" +
-	"  }\n" +
-	"  os.Stdout.Write(buffer.Bytes())\n" +
-	"}\n")
+{{$tmplName := .Name}}
+{{range .Replaceables}}
+type {{$tmplName}}{{.Name}}ReplArgs struct {
+	{{range .Args}} {{.Declare}}
+{{end}}
+}
+
+type {{$tmplName}}{{.Name}}ReplFunc func(*{{$tmplName}}{{.Name}}ReplArgs)
+
+{{end}}
+
+type {{.Name}}Template interface {
+  runtime.Template
+  Render(*{{.Name}}TemplateArgs) error
+{{range .Replaceables}}
+  Replace{{.Name}}({{$tmplName}}{{.Name}}ReplFunc)
+{{end}}
+}
+`)
+
+// Note that to make build tags to work there must be an empty line between the
+// build tags line and the package line.
+const TemplateImplFile = (`// +build !goats_devmod
+
+package {{.PkgName}}
+
+import (
+  "github.com/linuxerwang/goats-html/runtime"
+  "io"
+  @@IMPORT@@
+)
+
+{{$tmplName := .Name}}
+type {{$tmplName}}TemplateImpl struct {
+  *runtime.BaseTemplate
+  builtinFilter *runtime.BuiltinFilter
+{{range .Replaceables}}
+  {{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc
+{{end}}
+}
+
+func (__impl *{{$tmplName}}TemplateImpl) Render(__args *{{.Name}}TemplateArgs) error {
+  @@RENDER@@
+  return nil
+}
+
+{{range .Replaceables}}
+  func (__impl *{{$tmplName}}TemplateImpl) Replace{{.Name}}({{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc) {
+    __impl.{{.HiddenName}} = {{.HiddenName}}
+}
+{{end}}
+
+func New{{.Name}}Template(writer io.Writer, settings *runtime.TemplateSettings) {{.Name}}Template {
+  template := &{{.Name}}TemplateImpl{}
+  template.BaseTemplate = runtime.NewBaseTemplate(writer, settings)
+  template.builtinFilter = runtime.NewBuiltinFilter()
+  return template
+}
+`)
+
+// Note that to make build tags to work there must be an empty line between the
+// build tags line and the package line.
+const TemplateProxyFile = (`// +build goats_devmod
+
+package {{.PkgName}}
+
+import (
+  "github.com/linuxerwang/goats-html/runtime"
+  "io"
+)
+
+{{$tmplName := .Name}}
+type {{.HiddenName}}TemplateProxy struct {
+  *runtime.BaseTemplate
+{{range .Replaceables}}  {{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc
+{{end}}
+}
+
+func (__proxy *{{.HiddenName}}TemplateProxy) Render(args *{{.Name}}TemplateArgs) error {
+  err := runtime.CallRpc("{{.Pkg}}",
+    "{{.Name}}",
+    __proxy.GetSettings(),
+    args,
+    __proxy.GetWriter())
+  return err
+}
+
+{{$name := .HiddenName}}
+
+{{range .Replaceables}}  func (__impl *{{$name}}TemplateProxy) Replace{{.Name}}({{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc) {
+  __impl.{{.HiddenName}} = {{.HiddenName}}
+}
+{{end}}
+
+func New{{.Name}}Template(writer io.Writer, settings *runtime.TemplateSettings) {{.Name}}Template {
+  template := &{{.HiddenName}}TemplateProxy{}
+  template.BaseTemplate = runtime.NewBaseTemplate(writer, settings)
+  return template
+}
+`)
+
+const TemplateMainFile = (`package main
+import(
+  "bytes"
+  "{{.Pkg}}"
+  "github.com/linuxerwang/goats-html/runtime"
+  "os"
+)
+
+func main() {
+  settings := runtime.TemplateSettings{}
+  var buffer bytes.Buffer
+  switch os.Args[1] {
+{{range .Templates}}  case "{{.Name}}":
+    args := {{.PkgName}}.{{.Name}}TemplateArgs{}
+    runtime.DecodeRpcRequestOrFail(os.Stdin, &settings, &args)
+    template := {{.PkgName}}.New{{.Name}}Template(&buffer, &settings)
+    template.Render(&args)
+{{end}}
+  default:
+    panic("Unknown template name: " + os.Args[1])
+  }
+  os.Stdout.Write(buffer.Bytes())
+}
+`)
 
 const (
 	ImplFileSuffix  = "_impl.go"
@@ -234,21 +250,6 @@ func NewPkgImport(impt string) *PkgImport {
 		Alias: pkgAlias,
 		Path:  pkgPath,
 	}
-}
-
-func NewPkgImportFromCall(outputDir, callStmt string) *PkgImport {
-	callStmt = TrimWhiteSpaces(callStmt)
-	if !strings.HasPrefix(callStmt, "#") {
-		pkgPath := path.Join(
-			outputDir, strings.Replace(strings.Split(callStmt, "#")[0], ".html", "_html", -1))
-		pkgName := path.Base(pkgPath)
-		return &PkgImport{
-			Name:  pkgName,
-			Alias: pkgName,
-			Path:  pkgPath,
-		}
-	}
-	return nil
 }
 
 type GoatsReplaceable struct {
@@ -413,7 +414,7 @@ func (t *GoatsTemplate) findTemplateCall(node *html.Node) {
 	// TODO: Cyclic template call detection.
 	for _, attr := range node.Attr {
 		if attr.Key == "go:call" {
-			if pkgImport := NewPkgImportFromCall(t.Parser.Settings.OutputDir, attr.Val); pkgImport != nil {
+			if pkgImport := t.Parser.NewPkgImportFromCall(attr.Val); pkgImport != nil {
 				t.Imports[pkgImport.Alias] = pkgImport
 			}
 		}
@@ -637,6 +638,7 @@ type GoatsParser struct {
 	Pkg          string
 	OutputPath   string
 	HtmlFilePath string
+	RelativePath string
 	Doc          *html.Node
 	DocTypeTag   string
 	DocTypeAttrs []html.Attribute
@@ -675,7 +677,7 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 			if attr.Key == "go:import" && node.Data == "html" {
 				pkgImport = NewPkgImport(attr.Val)
 			} else if attr.Key == "go:call" {
-				pkgImport = NewPkgImportFromCall(p.Settings.OutputDir, attr.Val)
+				pkgImport = p.NewPkgImportFromCall(attr.Val)
 			}
 			if pkgImport != nil {
 				p.Imports[pkgImport.Alias] = pkgImport
@@ -846,12 +848,21 @@ func NewParser(parserSettings *ParserSettings, htmlFilePath string) *GoatsParser
 		panic("Can not access template file " + htmlFilePath)
 	}
 
+	tmplDir, err := filepath.Abs(filepath.Join(parserSettings.PkgRoot, parserSettings.TemplateDir))
+	if err != nil {
+		log.Fatal("Invalid template path: ", parserSettings.TemplateDir)
+	}
+
 	htmlFileName := path.Base(htmlFilePath)
+	relPath, err := filepath.Rel(tmplDir, filepath.Dir(htmlFilePath))
+	if err != nil {
+		log.Fatalf("Can't make relative path \"%s\" vs. \"%s\".\n", filepath.Dir(htmlFilePath), tmplDir)
+	}
 
 	pkgAlias := strings.Replace(htmlFileName, ".", "_", -1)
 
 	outputPath, err := filepath.Abs(
-		path.Join(parserSettings.PkgRoot, parserSettings.OutputDir, pkgAlias))
+		path.Join(parserSettings.PkgRoot, parserSettings.OutputDir, relPath, pkgAlias))
 	if err != nil {
 		log.Fatal("Invalid output path: ", outputPath)
 	}
@@ -863,9 +874,26 @@ func NewParser(parserSettings *ParserSettings, htmlFilePath string) *GoatsParser
 		Pkg:          pkg,
 		OutputPath:   outputPath,
 		HtmlFilePath: htmlFilePath,
+		RelativePath: relPath,
 		Templates:    map[string]*GoatsTemplate{},
 		Imports:      map[string]*PkgImport{},
 	}
 	p.loadFile()
 	return p
 }
+
+func (p *GoatsParser) NewPkgImportFromCall(callStmt string) *PkgImport {
+	callStmt = TrimWhiteSpaces(callStmt)
+	if !strings.HasPrefix(callStmt, "#") {
+		pkgPath := path.Join(
+			p.Settings.OutputDir, p.RelativePath, strings.Replace(strings.Split(callStmt, "#")[0], ".html", "_html", -1))
+		pkgName := path.Base(pkgPath)
+		return &PkgImport{
+			Name:  pkgName,
+			Alias: pkgName,
+			Path:  pkgPath,
+		}
+	}
+	return nil
+}
+
