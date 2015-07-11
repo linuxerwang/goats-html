@@ -28,13 +28,9 @@ type SelectorInstance struct {
 
 type TagContext struct {
 	ExprParser *expl.ExprParser
-	imports    map[string]bool
+	pkgRefs    *PkgRefs
 	fitlers    map[string]*RegisteredFilter
 	AutoEscape bool
-}
-
-func (ctx *TagContext) GetImports() map[string]bool {
-	return ctx.imports
 }
 
 func (ctx *TagContext) GetFilters() map[string]*RegisteredFilter {
@@ -56,7 +52,7 @@ func (ctx *TagContext) MaybeAddImports(expression string) {
 		switch x := n.(type) {
 		case *ast.SelectorExpr:
 			selector := expression[x.Pos()-1 : x.End()-1]
-			ctx.imports[strings.Split(selector, ".")[0]] = true
+			ctx.pkgRefs.RefByAlias(strings.Split(selector, ".")[0])
 			return false
 		}
 		return true
@@ -201,9 +197,9 @@ func (ctx *TagContext) findSelector(expr string) *SelectorInstance {
 	return selector
 }
 
-func NewTagContext() *TagContext {
+func NewTagContext(pkgRefs *PkgRefs) *TagContext {
 	tc := &TagContext{
-		imports:    map[string]bool{},
+		pkgRefs:    pkgRefs,
 		fitlers:    map[string]*RegisteredFilter{},
 		AutoEscape: true,
 	}

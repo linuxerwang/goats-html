@@ -32,6 +32,7 @@
     books in shelf <span go:content="quote(shelf.Name)"
                          class="shelf_name"></span>:<br>
     <div go:for="@loopvar, book: shelf.Books">
+      <!-- Call template in same folder. -->
       <div go:call="common.html#BookCard"
            go:arg="book: book"
            go:arg="loopvar: loopvar">
@@ -78,11 +79,18 @@
     </span>
   </div>
 
-  <div go:call="common.html#HotBooks"
+  <!-- Call template with relative path: upstream folder. -->
+  <div go:call="../examples/common.html#HotBooks"
        go:arg="books: shelf.Books">
   </div>
 
-  <div go:call="common.html#HotBooks"
+  <!-- Call template with relative path: downstream folder. -->
+  <div go:call="data/../common.html#HotBooks"
+       go:arg="books: shelf.Books">
+  </div>
+
+  <!-- Call template in absolute path. -->
+  <div go:call="/github.com/linuxerwang/goats-html/examples/common.html#HotBooks"
        go:arg="books: shelf.Books">
     <div go:replace="HotBook"
          go:arg="book: *data.Book"

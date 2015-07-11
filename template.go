@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	txttpl "text/template"
 
@@ -45,10 +44,10 @@ type {{$tmplName}}{{.Name}}ReplFunc func(*{{$tmplName}}{{.Name}}ReplArgs)
 {{end}}
 
 type {{.Name}}Template interface {
-  runtime.Template
-  Render(*{{.Name}}TemplateArgs) error
+	runtime.Template
+	Render(*{{.Name}}TemplateArgs) error
 {{range .Replaceables}}
-  Replace{{.Name}}({{$tmplName}}{{.Name}}ReplFunc)
+	Replace{{.Name}}({{$tmplName}}{{.Name}}ReplFunc)
 {{end}}
 }
 `)
@@ -60,36 +59,36 @@ const TemplateImplFile = (`// +build !goats_devmod
 package {{.PkgName}}
 
 import (
-  "github.com/linuxerwang/goats-html/runtime"
-  "io"
-  @@IMPORT@@
+	"github.com/linuxerwang/goats-html/runtime"
+	"io"
+	@@IMPORT@@
 )
 
 {{$tmplName := .Name}}
 type {{$tmplName}}TemplateImpl struct {
-  *runtime.BaseTemplate
-  builtinFilter *runtime.BuiltinFilter
+	*runtime.BaseTemplate
+	builtinFilter *runtime.BuiltinFilter
 {{range .Replaceables}}
-  {{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc
+	{{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc
 {{end}}
 }
 
 func (__impl *{{$tmplName}}TemplateImpl) Render(__args *{{.Name}}TemplateArgs) error {
-  @@RENDER@@
-  return nil
+	@@RENDER@@
+	return nil
 }
 
 {{range .Replaceables}}
-  func (__impl *{{$tmplName}}TemplateImpl) Replace{{.Name}}({{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc) {
-    __impl.{{.HiddenName}} = {{.HiddenName}}
+	func (__impl *{{$tmplName}}TemplateImpl) Replace{{.Name}}({{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc) {
+		__impl.{{.HiddenName}} = {{.HiddenName}}
 }
 {{end}}
 
 func New{{.Name}}Template(writer io.Writer, settings *runtime.TemplateSettings) {{.Name}}Template {
-  template := &{{.Name}}TemplateImpl{}
-  template.BaseTemplate = runtime.NewBaseTemplate(writer, settings)
-  template.builtinFilter = runtime.NewBuiltinFilter()
-  return template
+	template := &{{.Name}}TemplateImpl{}
+	template.BaseTemplate = runtime.NewBaseTemplate(writer, settings)
+	template.builtinFilter = runtime.NewBuiltinFilter()
+	return template
 }
 `)
 
@@ -100,62 +99,62 @@ const TemplateProxyFile = (`// +build goats_devmod
 package {{.PkgName}}
 
 import (
-  "github.com/linuxerwang/goats-html/runtime"
-  "io"
+	"github.com/linuxerwang/goats-html/runtime"
+	"io"
 )
 
 {{$tmplName := .Name}}
 type {{.HiddenName}}TemplateProxy struct {
-  *runtime.BaseTemplate
+	*runtime.BaseTemplate
 {{range .Replaceables}}  {{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc
 {{end}}
 }
 
 func (__proxy *{{.HiddenName}}TemplateProxy) Render(args *{{.Name}}TemplateArgs) error {
-  err := runtime.CallRpc("{{.Pkg}}",
-    "{{.Name}}",
-    __proxy.GetSettings(),
-    args,
-    __proxy.GetWriter())
-  return err
+	err := runtime.CallRpc("{{.Pkg}}",
+		"{{.Name}}",
+		__proxy.GetSettings(),
+		args,
+		__proxy.GetWriter())
+	return err
 }
 
 {{$name := .HiddenName}}
 
 {{range .Replaceables}}  func (__impl *{{$name}}TemplateProxy) Replace{{.Name}}({{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc) {
-  __impl.{{.HiddenName}} = {{.HiddenName}}
+	__impl.{{.HiddenName}} = {{.HiddenName}}
 }
 {{end}}
 
 func New{{.Name}}Template(writer io.Writer, settings *runtime.TemplateSettings) {{.Name}}Template {
-  template := &{{.HiddenName}}TemplateProxy{}
-  template.BaseTemplate = runtime.NewBaseTemplate(writer, settings)
-  return template
+	template := &{{.HiddenName}}TemplateProxy{}
+	template.BaseTemplate = runtime.NewBaseTemplate(writer, settings)
+	return template
 }
 `)
 
 const TemplateMainFile = (`package main
 import(
-  "bytes"
-  "{{.Pkg}}"
-  "github.com/linuxerwang/goats-html/runtime"
-  "os"
+	"bytes"
+	"{{.Pkg}}"
+	"github.com/linuxerwang/goats-html/runtime"
+	"os"
 )
 
 func main() {
-  settings := runtime.TemplateSettings{}
-  var buffer bytes.Buffer
-  switch os.Args[1] {
+	settings := runtime.TemplateSettings{}
+	var buffer bytes.Buffer
+	switch os.Args[1] {
 {{range .Templates}}  case "{{.Name}}":
-    args := {{.PkgName}}.{{.Name}}TemplateArgs{}
-    runtime.DecodeRpcRequestOrFail(os.Stdin, &settings, &args)
-    template := {{.PkgName}}.New{{.Name}}Template(&buffer, &settings)
-    template.Render(&args)
+		args := {{.PkgName}}.{{.Name}}TemplateArgs{}
+		runtime.DecodeRpcRequestOrFail(os.Stdin, &settings, &args)
+		template := {{.PkgName}}.New{{.Name}}Template(&buffer, &settings)
+		template.Render(&args)
 {{end}}
-  default:
-    panic("Unknown template name: " + os.Args[1])
-  }
-  os.Stdout.Write(buffer.Bytes())
+	default:
+		panic("Unknown template name: " + os.Args[1])
+	}
+	os.Stdout.Write(buffer.Bytes())
 }
 `)
 
@@ -195,24 +194,6 @@ var multipleAttrs = map[string]bool{
 	"go:var":    true,
 }
 
-var argMatcher *regexp.Regexp = regexp.MustCompile(
-	`^(?P<name>\w+)\s*:\s*(?P<type>([*]|\w|\.)+)(\s*=\s*(?P<value>(\w|\.)*))?$`)
-
-type ParserSettings struct {
-	PkgRoot      string
-	TemplateDir  string
-	OutputDir    string
-	Clean        bool
-	KeepComments bool
-	SampleData   bool
-}
-
-type PkgImport struct {
-	Name  string
-	Alias string
-	Path  string
-}
-
 func formatSource(writer io.Writer, unformated string) {
 	formated, err := format.Source([]byte(unformated))
 	if err != nil {
@@ -220,34 +201,6 @@ func formatSource(writer io.Writer, unformated string) {
 		log.Fatal("Failed to format the output template, ", err)
 	}
 	io.WriteString(writer, string(formated))
-}
-
-func (pi *PkgImport) GenerateImports(buffer *bytes.Buffer) {
-	if pi.Alias != "" {
-		buffer.WriteString(fmt.Sprintf("%s \"%s\"\n", pi.Alias, pi.Path))
-	} else {
-		buffer.WriteString(fmt.Sprintf("\"%s\"\n", pi.Path))
-	}
-}
-
-func NewPkgImport(impt string) *PkgImport {
-	var pkgAlias, pkgPath string
-	if strings.Contains(impt, ":") {
-		parts := strings.Split(impt, ":")
-		pkgAlias = TrimWhiteSpaces(parts[0])
-		pkgPath = TrimWhiteSpaces(parts[1])
-	} else if strings.Contains(impt, "/") {
-		pkgAlias = TrimWhiteSpaces(filepath.Base(impt))
-		pkgPath = TrimWhiteSpaces(impt)
-	} else {
-		pkgAlias = TrimWhiteSpaces(impt)
-		pkgPath = TrimWhiteSpaces(impt)
-	}
-	return &PkgImport{
-		Name:  TrimWhiteSpaces(filepath.Base(impt)),
-		Alias: pkgAlias,
-		Path:  pkgPath,
-	}
 }
 
 type GoatsReplaceable struct {
@@ -263,42 +216,40 @@ type GoatsReplace struct {
 }
 
 type GoatsTemplate struct {
-	Parser           *GoatsParser
-	OutputPath       string
-	OutputIfaceFile  string
-	OutputImplFile   string
-	OutputProxyFile  string
-	Pkg              string
-	PkgName          string
-	Name             string
-	HiddenName       string
-	Args             []*Argument
-	RootNode         *html.Node
-	NeedsDocType     bool
-	Replaceables     []*GoatsReplaceable
-	Replaces         []*GoatsReplace
-	ImportsInterface map[string]*PkgImport // imports for interface file
-	Imports          map[string]*PkgImport // imports for non interface files
+	Parser          *GoatsParser
+	OutputPath      string
+	OutputIfaceFile string
+	OutputImplFile  string
+	OutputProxyFile string
+	Pkg             string
+	PkgName         string
+	Name            string
+	HiddenName      string
+	Args            []*Argument
+	RootNode        *html.Node
+	NeedsDocType    bool
+	Replaceables    []*GoatsReplaceable
+	Replaces        []*GoatsReplace
+	pkgRefs         *PkgRefs
 }
 
 func NewGoatsTemplate(parser *GoatsParser, tmplName string, args []*Argument,
-	rootNode *html.Node, needsDocType bool, importsIface map[string]*PkgImport) *GoatsTemplate {
+	rootNode *html.Node, needsDocType bool, pkgRefs *PkgRefs) *GoatsTemplate {
 	prefix := ToSnakeCase(tmplName)
 	return &GoatsTemplate{
-		Parser:           parser,
-		OutputPath:       parser.OutputPath,
-		OutputIfaceFile:  fmt.Sprintf("%s.go", prefix),
-		OutputImplFile:   fmt.Sprintf("%s%s", prefix, ImplFileSuffix),
-		OutputProxyFile:  fmt.Sprintf("%s%s", prefix, ProxyFileSuffix),
-		Pkg:              parser.Pkg,
-		PkgName:          filepath.Base(parser.Pkg),
-		Name:             tmplName,
-		HiddenName:       ToHiddenName(tmplName),
-		Args:             args,
-		RootNode:         rootNode,
-		NeedsDocType:     needsDocType,
-		ImportsInterface: importsIface,
-		Imports:          map[string]*PkgImport{},
+		Parser:          parser,
+		OutputPath:      parser.OutputPath,
+		OutputIfaceFile: fmt.Sprintf("%s.go", prefix),
+		OutputImplFile:  fmt.Sprintf("%s%s", prefix, ImplFileSuffix),
+		OutputProxyFile: fmt.Sprintf("%s%s", prefix, ProxyFileSuffix),
+		Pkg:             parser.Pkg,
+		PkgName:         filepath.Base(parser.Pkg),
+		Name:            tmplName,
+		HiddenName:      ToHiddenName(tmplName),
+		Args:            args,
+		RootNode:        rootNode,
+		NeedsDocType:    needsDocType,
+		pkgRefs:         pkgRefs,
 	}
 }
 
@@ -335,9 +286,7 @@ func (t *GoatsTemplate) generateInterface() {
 
 	// Generate imports
 	var importsBuffer bytes.Buffer
-	for _, pkgImport := range t.ImportsInterface {
-		pkgImport.GenerateImports(&importsBuffer)
-	}
+	t.pkgRefs.GenerateImports(&importsBuffer, GenInterfaceImports)
 	text := strings.Replace(buffer.String(), "@@IMPORT@@", importsBuffer.String(), 1)
 	formatSource(goFile, text)
 }
@@ -363,7 +312,7 @@ func (t *GoatsTemplate) generateImpl() {
 	// Generate render content
 	var headProcessor Processor = NewArgProcessor(t.Args)
 	t.buildProcessorChain(headProcessor, t.RootNode)
-	context := NewTagContext()
+	context := NewTagContext(t.pkgRefs)
 	if t.NeedsDocType {
 		docTypeProcessor := NewDocTypeProcessor(t.Parser.DocTypeTag, t.Parser.DocTypeAttrs)
 		docTypeProcessor.SetNext(headProcessor)
@@ -374,14 +323,7 @@ func (t *GoatsTemplate) generateImpl() {
 
 	// manage imports
 	var importsBuffer bytes.Buffer
-	for _, pkgImport := range t.Imports {
-		pkgImport.GenerateImports(&importsBuffer)
-	}
-	for impt, _ := range context.GetImports() {
-		if pkgImport, ok := t.Parser.Imports[impt]; ok {
-			pkgImport.GenerateImports(&importsBuffer)
-		}
-	}
+	t.pkgRefs.GenerateImports(&importsBuffer, GenImplImports)
 	text := strings.Replace(buffer.String(), "@@IMPORT@@", importsBuffer.String(), 1)
 	unformated := strings.Replace(text, "@@RENDER@@", renderBuffer.String(), 1)
 
@@ -406,20 +348,6 @@ func (t *GoatsTemplate) generateProxy() {
 		log.Fatal("Failed to generate file ", goFilePath, err)
 	}
 	formatSource(goFile, buffer.String())
-}
-
-func (t *GoatsTemplate) findTemplateCall(node *html.Node) {
-	// TODO: Cyclic template call detection.
-	for _, attr := range node.Attr {
-		if attr.Key == "go:call" {
-			if pkgImport := t.Parser.NewPkgImportFromCall(attr.Val); pkgImport != nil {
-				t.Imports[pkgImport.Alias] = pkgImport
-			}
-		}
-	}
-	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		t.findTemplateCall(c)
-	}
 }
 
 func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.Node) {
@@ -503,10 +431,7 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.N
 		}
 
 		if val, ok := goAttrs["go:call"]; ok {
-			if !strings.Contains(val, "#") {
-				log.Fatal("Call to template must contain a \"#\".")
-			}
-			parts := strings.Split(val, "#")
+			pkgPath, callName := t.pkgRefs.ParseTmplCall(val)
 
 			var replacements []*Replacement
 			for c := node.FirstChild; c != nil; c = c.NextSibling {
@@ -539,7 +464,7 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.N
 			}
 
 			callProcessor := NewCallProcessor(
-				parts[0], parts[1], ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
+				pkgPath, callName, ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
 			preProcessor.SetNext(callProcessor)
 			preProcessor = callProcessor
 

@@ -16,7 +16,7 @@ type Replacement struct {
 
 type GoCallProcessor struct {
 	BaseProcessor
-	pkgAlias     string
+	pkgPath      string
 	templateName string
 	args         []*Argument
 	replacements []*Replacement
@@ -26,13 +26,15 @@ type GoCallProcessor struct {
 func (c *GoCallProcessor) Process(writer io.Writer, context *TagContext) {
 	var argType string
 	var newTemplateName string
-	if c.pkgAlias == "" {
+	var pi *pkgImport
+	if c.pkgPath == "" {
 		// In-package template call.
 		argType = fmt.Sprintf("%sTemplateArgs", c.templateName)
 		newTemplateName = fmt.Sprintf("New%sTemplate", c.templateName)
 	} else {
-		argType = fmt.Sprintf("%s.%sTemplateArgs", c.pkgAlias, c.templateName)
-		newTemplateName = fmt.Sprintf("%s.New%sTemplate", c.pkgAlias, c.templateName)
+		pi = context.pkgRefs.RefByPath(c.pkgPath, false)
+		argType = fmt.Sprintf("%s.%sTemplateArgs", pi.Alias(), c.templateName)
+		newTemplateName = fmt.Sprintf("%s.New%sTemplate", pi.Alias(), c.templateName)
 	}
 
 	// Start of local scope
@@ -75,13 +77,13 @@ func (c *GoCallProcessor) Process(writer io.Writer, context *TagContext) {
 	// Replacements.
 	for _, replacement := range c.replacements {
 		argType := fmt.Sprintf("%s%sReplArgs", c.templateName, replacement.Name)
-		if c.pkgAlias == "" {
+		if c.pkgPath == "" {
 			io.WriteString(writer,
 				fmt.Sprintf("  __tplt.Replace%s(func(__args *%s) {\n", replacement.Name, argType))
 		} else {
 			io.WriteString(writer,
 				fmt.Sprintf("  __tplt.Replace%s(func(__args *%s.%s) {\n",
-					replacement.Name, c.pkgAlias, argType))
+					replacement.Name, pi.Alias(), argType))
 		}
 
 		for _, arg := range replacement.Args {
@@ -99,10 +101,10 @@ func (c *GoCallProcessor) Process(writer io.Writer, context *TagContext) {
 	// go:call is a terminal processor.
 }
 
-func NewCallProcessor(pkgAlias string, templateName string, args []*Argument,
+func NewCallProcessor(pkgPath string, templateName string, args []*Argument,
 	replacements []*Replacement, callerAttrs []html.Attribute) *GoCallProcessor {
 	processor := &GoCallProcessor{
-		pkgAlias:     strings.Replace(pkgAlias, ".", "_", -1),
+		pkgPath:      pkgPath,
 		templateName: templateName,
 		args:         args,
 		replacements: replacements,

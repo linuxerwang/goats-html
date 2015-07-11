@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	txttpl "text/template"
@@ -13,6 +14,16 @@ import (
 	"golang.org/x/net/html"
 )
 
+type ParserSettings struct {
+	PkgRoot      string
+	TemplateDir  string
+	OutputDir    string
+	Clean        bool
+	KeepComments bool
+	SampleData   bool
+}
+
+// The goats template parser. There is one parser per template file.
 type GoatsParser struct {
 	Settings     *ParserSettings
 	ModTime      time.Time
@@ -24,7 +35,7 @@ type GoatsParser struct {
 	DocTypeTag   string
 	DocTypeAttrs []html.Attribute
 	Templates    map[string]*GoatsTemplate
-	Imports      map[string]*PkgImport
+	PkgMgr       *PkgManager
 }
 
 func (p *GoatsParser) loadFile() {
@@ -40,11 +51,6 @@ func (p *GoatsParser) loadFile() {
 	}
 
 	p.FindTemplates(p.Doc)
-
-	// For each template search its go:call and add corresponding template.
-	for _, tmpl := range p.Templates {
-		tmpl.findTemplateCall(tmpl.RootNode)
-	}
 }
 
 func (p *GoatsParser) FindTemplates(node *html.Node) {
@@ -53,22 +59,27 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 		p.DocTypeAttrs = node.Attr
 	} else if node.Type == html.ElementNode {
 		// Collect imports.
-		var pkgImport *PkgImport = nil
 		for _, attr := range node.Attr {
 			if attr.Key == "go:import" && node.Data == "html" {
-				pkgImport = NewPkgImport(attr.Val)
+				impt := TrimWhiteSpaces(attr.Val)
+				if strings.Contains(impt, ":") {
+					parts := strings.Split(impt, ":")
+					p.PkgMgr.AddImport(TrimWhiteSpaces(parts[0]), TrimWhiteSpaces(parts[1]))
+				} else {
+					p.PkgMgr.AddImport(TrimWhiteSpaces(path.Base(impt)), TrimWhiteSpaces(impt))
+				}
+				break
 			} else if attr.Key == "go:call" {
-				pkgImport = p.NewPkgImportFromCall(attr.Val)
-			}
-			if pkgImport != nil {
-				p.Imports[pkgImport.Alias] = pkgImport
+				pkgPath, _ := p.PkgMgr.ParseTmplCall(attr.Val)
+				p.PkgMgr.AddImport("", pkgPath)
+				break
 			}
 		}
 
 		templateName := ""
 		needsDocType := false
 		args := []*Argument{}
-		imports := map[string]*PkgImport{}
+		pkgRefs := p.PkgMgr.CreatePkgRefs()
 		for _, attr := range node.Attr {
 			if attr.Key == "go:template" {
 				templateName = attr.Val
@@ -82,13 +93,13 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 				if attr.Key == "go:arg" {
 					arg := NewArgDef(attr.Val)
 					args = append(args, arg)
-					if pkgImport, ok := p.Imports[arg.PkgName]; ok {
-						imports[arg.PkgName] = pkgImport
+					if arg.PkgName != "" {
+						pkgRefs.RefByAlias(arg.PkgName)
 					}
 				}
 			}
 
-			template := NewGoatsTemplate(p, templateName, args, node, needsDocType, imports)
+			template := NewGoatsTemplate(p, templateName, args, node, needsDocType, pkgRefs)
 			p.Templates[templateName] = template
 			p.findReplaceables(node, template)
 			for c := node.FirstChild; c != nil; c = c.NextSibling {
@@ -199,6 +210,7 @@ func (p *GoatsParser) Generate() {
 		fmt.Printf("        %s\n", template.OutputProxyFile)
 		template.generateProxy()
 	}
+
 	fmt.Println("    Generating main file " + MainFileName)
 	p.generateMain()
 }
@@ -234,46 +246,33 @@ func NewParser(parserSettings *ParserSettings, htmlFilePath string) *GoatsParser
 		log.Fatal("Invalid template path: ", parserSettings.TemplateDir)
 	}
 
-	htmlFileName := filepath.Base(htmlFilePath)
-	relPath, err := filepath.Rel(tmplDir, filepath.Dir(htmlFilePath))
+	prefix, err := filepath.Rel(tmplDir, filepath.Dir(htmlFilePath))
 	if err != nil {
 		log.Fatalf("Can't make relative path \"%s\" vs. \"%s\".\n", filepath.Dir(htmlFilePath), tmplDir)
 	}
 
-	pkgAlias := strings.Replace(htmlFileName, ".", "_", -1)
+	htmlFileName := filepath.Base(htmlFilePath)
+	pkgName := strings.Replace(htmlFileName, ".", "_", -1)
 
 	outputPath, err := filepath.Abs(
-		filepath.Join(parserSettings.PkgRoot, parserSettings.OutputDir, relPath, pkgAlias))
+		filepath.Join(parserSettings.PkgRoot, parserSettings.OutputDir, prefix, pkgName))
 	if err != nil {
 		log.Fatal("Invalid output path: ", outputPath)
 	}
 
-	pkg := filepath.Join(parserSettings.OutputDir, pkgAlias)
+	pkgMgr := NewPkgManager(path.Join(parserSettings.OutputDir, prefix))
+
+	pkg := path.Join(parserSettings.OutputDir, prefix, pkgName)
 	p := &GoatsParser{
 		Settings:     parserSettings,
 		ModTime:      info.ModTime(),
 		Pkg:          pkg,
 		OutputPath:   outputPath,
 		HtmlFilePath: htmlFilePath,
-		RelativePath: relPath,
+		RelativePath: prefix,
 		Templates:    map[string]*GoatsTemplate{},
-		Imports:      map[string]*PkgImport{},
+		PkgMgr:       pkgMgr,
 	}
 	p.loadFile()
 	return p
-}
-
-func (p *GoatsParser) NewPkgImportFromCall(callStmt string) *PkgImport {
-	callStmt = TrimWhiteSpaces(callStmt)
-	if !strings.HasPrefix(callStmt, "#") {
-		pkgPath := filepath.Join(
-			p.Settings.OutputDir, p.RelativePath, strings.Replace(strings.Split(callStmt, "#")[0], ".html", "_html", -1))
-		pkgName := filepath.Base(pkgPath)
-		return &PkgImport{
-			Name:  pkgName,
-			Alias: pkgName,
-			Path:  pkgPath,
-		}
-	}
-	return nil
 }
