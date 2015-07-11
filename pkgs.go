@@ -6,6 +6,9 @@ import (
 	"log"
 	"path"
 	"strings"
+
+	"github.com/linuxerwang/goats-html/processors"
+	"github.com/linuxerwang/goats-html/util"
 )
 
 type GenType int
@@ -43,7 +46,7 @@ func (pr *PkgRefs) ParseTmplCall(callStmt string) (pkgPath, callName string) {
 	return pr.pkgMgr.ParseTmplCall(callStmt)
 }
 
-func (pr *PkgRefs) RefByPath(pkgPath string, forInterface bool) *pkgImport {
+func (pr *PkgRefs) RefByPath(pkgPath string, forInterface bool) processors.AliasGetter {
 	pi := pr.pkgMgr.PkgByPath(pkgPath)
 	if pi != nil {
 		pr.pkgs[pi.path] = forInterface
@@ -51,7 +54,7 @@ func (pr *PkgRefs) RefByPath(pkgPath string, forInterface bool) *pkgImport {
 	return pi
 }
 
-func (pr *PkgRefs) RefByAlias(alias string) *pkgImport {
+func (pr *PkgRefs) RefByAlias(alias string) processors.AliasGetter {
 	pi := pr.pkgMgr.PkgByAlias(alias)
 	if pi != nil {
 		pr.pkgs[pi.path] = true
@@ -84,13 +87,13 @@ func (pm *PkgManager) AddImport(alias, pkgPath string) *pkgImport {
 		return nil
 	}
 
-	alias = TrimWhiteSpaces(alias)
+	alias = util.TrimWhiteSpaces(alias)
 
 	if pi, found := pm.pkgsForAlias[alias]; found {
 		return pi
 	}
 
-	pkgPath = TrimWhiteSpaces(pkgPath)
+	pkgPath = util.TrimWhiteSpaces(pkgPath)
 	pkgName := path.Base(pkgPath)
 
 	if alias == "" {
@@ -118,7 +121,7 @@ func (pm *PkgManager) AddImport(alias, pkgPath string) *pkgImport {
 }
 
 func (pm *PkgManager) ParseTmplCall(callStmt string) (pkgPath, callName string) {
-	callStmt = TrimWhiteSpaces(callStmt)
+	callStmt = util.TrimWhiteSpaces(callStmt)
 
 	if !strings.Contains(callStmt, "#") {
 		log.Fatal(`Call to template must contain a "#".`)
@@ -142,7 +145,7 @@ func (pm *PkgManager) ParseTmplCall(callStmt string) (pkgPath, callName string) 
 }
 
 func (pm *PkgManager) PkgByPath(pkgPath string) *pkgImport {
-	pkgPath = path.Clean(TrimWhiteSpaces(pkgPath))
+	pkgPath = path.Clean(util.TrimWhiteSpaces(pkgPath))
 	if pi, found := pm.pkgsForPath[pkgPath]; found {
 		return pi
 	}

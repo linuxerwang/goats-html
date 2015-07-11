@@ -11,6 +11,8 @@ import (
 	txttpl "text/template"
 	"time"
 
+	"github.com/linuxerwang/goats-html/processors"
+	"github.com/linuxerwang/goats-html/util"
 	"golang.org/x/net/html"
 )
 
@@ -61,12 +63,12 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 		// Collect imports.
 		for _, attr := range node.Attr {
 			if attr.Key == "go:import" && node.Data == "html" {
-				impt := TrimWhiteSpaces(attr.Val)
+				impt := util.TrimWhiteSpaces(attr.Val)
 				if strings.Contains(impt, ":") {
 					parts := strings.Split(impt, ":")
-					p.PkgMgr.AddImport(TrimWhiteSpaces(parts[0]), TrimWhiteSpaces(parts[1]))
+					p.PkgMgr.AddImport(util.TrimWhiteSpaces(parts[0]), util.TrimWhiteSpaces(parts[1]))
 				} else {
-					p.PkgMgr.AddImport(TrimWhiteSpaces(path.Base(impt)), TrimWhiteSpaces(impt))
+					p.PkgMgr.AddImport(util.TrimWhiteSpaces(path.Base(impt)), util.TrimWhiteSpaces(impt))
 				}
 				break
 			} else if attr.Key == "go:call" {
@@ -78,7 +80,7 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 
 		templateName := ""
 		needsDocType := false
-		args := []*Argument{}
+		args := []*processors.Argument{}
 		pkgRefs := p.PkgMgr.CreatePkgRefs()
 		for _, attr := range node.Attr {
 			if attr.Key == "go:template" {
@@ -91,7 +93,7 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 		if templateName != "" {
 			for _, attr := range node.Attr {
 				if attr.Key == "go:arg" {
-					arg := NewArgDef(attr.Val)
+					arg := processors.NewArgDef(attr.Val)
 					args = append(args, arg)
 					if arg.PkgName != "" {
 						pkgRefs.RefByAlias(arg.PkgName)
@@ -108,7 +110,7 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 						template.Replaces = append(template.Replaces,
 							&GoatsReplace{
 								Name:       attr.Val,
-								HiddenName: ToHiddenName(attr.Val),
+								HiddenName: util.ToHiddenName(attr.Val),
 							})
 						break
 					}
@@ -127,7 +129,7 @@ func (p *GoatsParser) findReplaceables(node *html.Node, template *GoatsTemplate)
 		var foundReplaceable bool
 		var foundTemplate bool
 		replaceable := &GoatsReplaceable{
-			Args: []*Argument{},
+			Args: []*processors.Argument{},
 		}
 
 		for _, attr := range c.Attr {
@@ -142,7 +144,7 @@ func (p *GoatsParser) findReplaceables(node *html.Node, template *GoatsTemplate)
 				}
 				foundReplaceable = true
 				replaceable.Name = attr.Val
-				replaceable.HiddenName = ToHiddenName(attr.Val)
+				replaceable.HiddenName = util.ToHiddenName(attr.Val)
 				template.Replaceables = append(template.Replaceables, replaceable)
 			}
 		}
@@ -158,7 +160,7 @@ func (p *GoatsParser) findReplaceables(node *html.Node, template *GoatsTemplate)
 		if foundReplaceable {
 			for _, attr := range c.Attr {
 				if attr.Key == "go:arg" {
-					replaceable.Args = append(replaceable.Args, NewArgDef(attr.Val))
+					replaceable.Args = append(replaceable.Args, processors.NewArgDef(attr.Val))
 				}
 			}
 		}

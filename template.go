@@ -11,6 +11,8 @@ import (
 	"strings"
 	txttpl "text/template"
 
+	"github.com/linuxerwang/goats-html/processors"
+	"github.com/linuxerwang/goats-html/util"
 	"golang.org/x/net/html"
 )
 
@@ -206,13 +208,13 @@ func formatSource(writer io.Writer, unformated string) {
 type GoatsReplaceable struct {
 	Name       string
 	HiddenName string
-	Args       []*Argument
+	Args       []*processors.Argument
 }
 
 type GoatsReplace struct {
 	Name       string
 	HiddenName string
-	Args       []*Argument
+	Args       []*processors.Argument
 }
 
 type GoatsTemplate struct {
@@ -225,7 +227,7 @@ type GoatsTemplate struct {
 	PkgName         string
 	Name            string
 	HiddenName      string
-	Args            []*Argument
+	Args            []*processors.Argument
 	RootNode        *html.Node
 	NeedsDocType    bool
 	Replaceables    []*GoatsReplaceable
@@ -233,9 +235,9 @@ type GoatsTemplate struct {
 	pkgRefs         *PkgRefs
 }
 
-func NewGoatsTemplate(parser *GoatsParser, tmplName string, args []*Argument,
+func NewGoatsTemplate(parser *GoatsParser, tmplName string, args []*processors.Argument,
 	rootNode *html.Node, needsDocType bool, pkgRefs *PkgRefs) *GoatsTemplate {
-	prefix := ToSnakeCase(tmplName)
+	prefix := util.ToSnakeCase(tmplName)
 	return &GoatsTemplate{
 		Parser:          parser,
 		OutputPath:      parser.OutputPath,
@@ -245,7 +247,7 @@ func NewGoatsTemplate(parser *GoatsParser, tmplName string, args []*Argument,
 		Pkg:             parser.Pkg,
 		PkgName:         filepath.Base(parser.Pkg),
 		Name:            tmplName,
-		HiddenName:      ToHiddenName(tmplName),
+		HiddenName:      util.ToHiddenName(tmplName),
 		Args:            args,
 		RootNode:        rootNode,
 		NeedsDocType:    needsDocType,
@@ -310,11 +312,11 @@ func (t *GoatsTemplate) generateImpl() {
 	}
 
 	// Generate render content
-	var headProcessor Processor = NewArgProcessor(t.Args)
+	var headProcessor processors.Processor = processors.NewArgProcessor(t.Args)
 	t.buildProcessorChain(headProcessor, t.RootNode)
-	context := NewTagContext(t.pkgRefs)
+	context := processors.NewTagContext(t.pkgRefs)
 	if t.NeedsDocType {
-		docTypeProcessor := NewDocTypeProcessor(t.Parser.DocTypeTag, t.Parser.DocTypeAttrs)
+		docTypeProcessor := processors.NewDocTypeProcessor(t.Parser.DocTypeTag, t.Parser.DocTypeAttrs)
 		docTypeProcessor.SetNext(headProcessor)
 		headProcessor = docTypeProcessor
 	}
@@ -350,50 +352,50 @@ func (t *GoatsTemplate) generateProxy() {
 	formatSource(goFile, buffer.String())
 }
 
-func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.Node) {
+func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, node *html.Node) {
 	if node.Type == html.CommentNode {
 		if t.Parser.Settings.KeepComments {
-			processor := NewCommentProcessor(node.Data)
+			processor := processors.NewCommentProcessor(node.Data)
 			preProcessor.SetNext(processor)
 			preProcessor = processor
 		}
 	} else if node.Type == html.TextNode {
-		processor := NewTextProcessor(node.Data)
+		processor := processors.NewTextProcessor(node.Data)
 		preProcessor.SetNext(processor)
 		preProcessor = processor
 	} else if node.Type == html.ElementNode {
 		goAttrs := t.getAttrMap(node)
 
 		if val, ok := goAttrs["go:if"]; ok {
-			ifProcessor := NewIfProcessor(val)
+			ifProcessor := processors.NewIfProcessor(val)
 			preProcessor.SetNext(ifProcessor)
 			preProcessor = ifProcessor
 		}
 
 		if val, ok := goAttrs["go:for"]; ok {
-			forProcessor := NewForProcessor(val)
+			forProcessor := processors.NewForProcessor(val)
 			preProcessor.SetNext(forProcessor)
 			preProcessor = forProcessor
 		}
 
 		if val, ok := goAttrs["go:var"]; ok {
-			varProcessor := NewVarsProcessor(val)
+			varProcessor := processors.NewVarsProcessor(val)
 			preProcessor.SetNext(varProcessor)
 			preProcessor = varProcessor
 		}
 
 		if val, ok := goAttrs["go:settings"]; ok {
-			settingsProcessor := NewSettingsProcessor(val)
+			settingsProcessor := processors.NewSettingsProcessor(val)
 			preProcessor.SetNext(settingsProcessor)
 			preProcessor = settingsProcessor
 		}
 
 		if val, ok := goAttrs["go:case"]; ok {
-			caseProcessor := NewCaseProcessor(val)
+			caseProcessor := processors.NewCaseProcessor(val)
 			preProcessor.SetNext(caseProcessor)
 			preProcessor = caseProcessor
 		} else if _, ok := goAttrs["go:default"]; ok {
-			defaultProcessor := NewDefaultProcessor()
+			defaultProcessor := processors.NewDefaultProcessor()
 			preProcessor.SetNext(defaultProcessor)
 			preProcessor = defaultProcessor
 		}
@@ -418,14 +420,14 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.N
 
 		if val, ok := goAttrs["go:template"]; ok && node != t.RootNode {
 			// Convert to an in-package template call.
-			callProcessor := NewCallProcessor("", val, ParseArgDefs(goAttrs["go:arg"]), nil, node.Attr)
+			callProcessor := processors.NewCallProcessor("", val, processors.ParseArgDefs(goAttrs["go:arg"]), nil, node.Attr)
 			preProcessor.SetNext(callProcessor)
 			preProcessor = callProcessor
 			return
 		}
 
 		if val, ok := goAttrs["go:replaceable"]; ok && node != t.RootNode {
-			replaceableProcessor := NewReplaceableProcessor(t.Name, val, ParseArgDefs(goAttrs["go:arg"]))
+			replaceableProcessor := processors.NewReplaceableProcessor(t.Name, val, processors.ParseArgDefs(goAttrs["go:arg"]))
 			preProcessor.SetNext(replaceableProcessor)
 			preProcessor = replaceableProcessor
 		}
@@ -433,29 +435,29 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.N
 		if val, ok := goAttrs["go:call"]; ok {
 			pkgPath, callName := t.pkgRefs.ParseTmplCall(val)
 
-			var replacements []*Replacement
+			var replacements []*processors.Replacement
 			for c := node.FirstChild; c != nil; c = c.NextSibling {
 				if c.Type == html.TextNode {
-					if len(TrimWhiteSpaces(c.Data)) != 0 {
+					if len(util.TrimWhiteSpaces(c.Data)) != 0 {
 						log.Fatal("Node with go:call can only contain nodes with go:replace or spaces.")
 					}
 					continue
 				}
 
 				var found bool
-				replacement := &Replacement{
-					Args: []*Argument{},
+				replacement := &processors.Replacement{
+					Args: []*processors.Argument{},
 				}
 				for _, attr := range c.Attr {
 					if attr.Key == "go:replace" {
 						found = true
-						head := NewHeadProcessor()
+						head := processors.NewHeadProcessor()
 						t.buildProcessorChain(head, c)
 						replacement.Name = attr.Val
 						replacement.Head = head
 						replacements = append(replacements, replacement)
 					} else if attr.Key == "go:arg" {
-						replacement.Args = append(replacement.Args, NewArgDef(attr.Val))
+						replacement.Args = append(replacement.Args, processors.NewArgDef(attr.Val))
 					}
 				}
 				if !found {
@@ -463,8 +465,8 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.N
 				}
 			}
 
-			callProcessor := NewCallProcessor(
-				pkgPath, callName, ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
+			callProcessor := processors.NewCallProcessor(
+				pkgPath, callName, processors.ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
 			preProcessor.SetNext(callProcessor)
 			preProcessor = callProcessor
 
@@ -474,7 +476,7 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor Processor, node *html.N
 	}
 }
 
-func (t *GoatsTemplate) handleTag(preProcessor Processor, node *html.Node, tagProcessingType int) {
+func (t *GoatsTemplate) handleTag(preProcessor processors.Processor, node *html.Node, tagProcessingType int) {
 	// Static tag attributes.
 	var nonGoAttrs []html.Attribute
 	for _, attr := range node.Attr {
@@ -492,18 +494,18 @@ func (t *GoatsTemplate) handleTag(preProcessor Processor, node *html.Node, tagPr
 	if _, ok := goAttrs["go:template"]; ok {
 		firstTag = true
 	}
-	tagProcessor := NewTagProcessor(node.Data, omitTag, firstTag, !voidElements[node.Data], node.Attr)
+	tagProcessor := processors.NewTagProcessor(node.Data, omitTag, firstTag, !voidElements[node.Data], node.Attr)
 	preProcessor.SetNext(tagProcessor)
 	preProcessor = tagProcessor
 
 	if tagProcessingType == TagProcessingGoSwitch {
-		switchProcessor := NewSwitchProcessor(goAttrs["go:switch"])
+		switchProcessor := processors.NewSwitchProcessor(goAttrs["go:switch"])
 		preProcessor.SetNext(switchProcessor)
 		preProcessor = switchProcessor
 	}
 
 	if val, ok := goAttrs["go:content"]; ok {
-		contentProcessor := NewContentProcessor(val)
+		contentProcessor := processors.NewContentProcessor(val)
 		preProcessor.SetNext(contentProcessor)
 		preProcessor = contentProcessor
 	} else {
@@ -528,7 +530,7 @@ func (t *GoatsTemplate) handleTag(preProcessor Processor, node *html.Node, tagPr
 				}
 			}
 
-			head := NewHeadProcessor()
+			head := processors.NewHeadProcessor()
 			t.buildProcessorChain(head, currentNode)
 			tagProcessor.AddChild(head)
 		}
