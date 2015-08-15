@@ -79,7 +79,7 @@ func help(args []string) {
 
 	for _, cmd := range commands {
 		if cmd.Name == arg {
-			fmt.Fprintf(os.Stdout, "Usage: %s\n", cmd.UsageLine)
+			cmd.Usage()
 			// not exit 2: succeeded at 'goats help cmd'.
 			return
 		}

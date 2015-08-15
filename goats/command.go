@@ -30,13 +30,15 @@ type Command struct {
 }
 
 func (c *Command) Usage() {
-	fmt.Fprintf(os.Stderr, `goats is the command for GO Attribute-based Template System.
-usage:
+	fmt.Printf(strings.TrimSpace(c.Short))
+	fmt.Printf(`
+Usage:
 
     %s
 
 `, c.UsageLine)
-	fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(c.Long))
+	fmt.Printf("%s\n\n", strings.TrimSpace(c.Long))
+	c.Flag.PrintDefaults()
 	os.Exit(2)
 }
 

@@ -11,16 +11,16 @@ import (
 
 var genCmd = &Command{
 	Name:      "gen",
-	UsageLine: "goats gen [--package_root <path>] --template_dir <path> [--output_dir <path>] [--clean] [--keep_comments] [--sample_data]",
-	Short:     "run gen on all template files under template root",
-	Long:      "run gen on all template files under template root",
+	UsageLine: "goats gen [--package_root <path>] [--template_dir <path>] [--output_dir <path>] [--clean] [--keep_comments] [--sample_data] [file1.html file2.html ...]",
+	Short:     "Generate go files from goats templates.",
+	Long:      "If specific goats html files are provided, generate go files for them; otherwise, generate go files for all goats html files under template_dir.",
 }
 
 var (
 	genPkgRoot = genCmd.Flag.String(
 		"package_root", ".", "go packages root directory containing templates.")
 	genTemplateDir = genCmd.Flag.String(
-		"template_dir", "", "Template directory relative to package root.")
+		"template_dir", "", "Template directory relative to package root, required if no specific goats html file is given.")
 	genOutputDir = genCmd.Flag.String(
 		"output_dir", "", "Output directory relative to package root.")
 	genClean        = genCmd.Flag.Bool("clean", true, "Clean unexisting *_html directories.")
@@ -31,16 +31,13 @@ var (
 )
 
 func runGen(cmd *Command, args []string) {
-	if *genTemplateDir == "" {
-		fmt.Fprintf(os.Stderr, "flag template_root is required.\n\n")
-		os.Exit(2)
-	} else if *genOutputDir == "" {
+	fmt.Printf("Package root directory: %s\n", *genPkgRoot)
+	fmt.Printf("Templates directory: %s\n", *genTemplateDir)
+	fmt.Printf("Output directory: %s\n\n", *genOutputDir)
+
+	if *genOutputDir == "" {
 		genOutputDir = genTemplateDir
 	}
-
-	fmt.Fprintf(os.Stderr, "Package root directory: %s\n", *genPkgRoot)
-	fmt.Fprintf(os.Stderr, "Templates directory: %s\n", *genTemplateDir)
-	fmt.Fprintf(os.Stderr, "Output directory: %s\n\n", *genOutputDir)
 
 	parserSettings = &goats.ParserSettings{
 		PkgRoot:      *genPkgRoot,
@@ -51,11 +48,25 @@ func runGen(cmd *Command, args []string) {
 		SampleData:   *genSampleData,
 	}
 
-	tmplDir, err := filepath.Abs(filepath.Join(*genPkgRoot, *genTemplateDir))
-	if err == nil {
-		filepath.Walk(tmplDir, walkFunc)
+	if len(args) > 0 {
+		// Template files are specified.
+		for _, templateFile := range args {
+			tf, err := filepath.Abs(templateFile)
+			if err == nil {
+				parseTemplateFile(tf)
+			} else {
+				panic("Invalid template file: " + templateFile)
+			}
+		}
 	} else {
-		panic("Invalid template dir: " + tmplDir)
+		// All template files.
+		tmplDir, err := filepath.Abs(filepath.Join(*genPkgRoot, *genTemplateDir))
+		fmt.Println(tmplDir)
+		if err == nil {
+			filepath.Walk(tmplDir, walkFunc)
+		} else {
+			panic("Invalid template dir: " + tmplDir)
+		}
 	}
 }
 
