@@ -70,8 +70,10 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 				} else {
 					p.PkgMgr.AddImport(util.TrimWhiteSpaces(path.Base(impt)), util.TrimWhiteSpaces(impt))
 				}
-				break
 			} else if attr.Key == "go:call" {
+				if node.Data == "html" {
+					panic("Attr go:call is not allowed on <html> tag.")
+				}
 				pkgPath, _ := p.PkgMgr.ParseTmplCall(attr.Val)
 				p.PkgMgr.AddImport("", pkgPath)
 				break
