@@ -98,7 +98,7 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 					arg := processors.NewArgDef(attr.Val)
 					args = append(args, arg)
 					if arg.PkgName != "" {
-						pkgRefs.RefByAlias(arg.PkgName)
+						pkgRefs.RefByAlias(arg.PkgName, true)
 					}
 				}
 			}

@@ -17,8 +17,8 @@ type dummyAliasReferer struct {
 	paths   map[string]bool
 }
 
-func (dar *dummyAliasReferer) RefByAlias(alias string) AliasGetter {
-	dar.aliases[alias] = true
+func (dar *dummyAliasReferer) RefByAlias(alias string, forInterface bool) AliasGetter {
+	dar.aliases[alias] = forInterface
 	return dummyAliasGetter{alias: alias}
 }
 

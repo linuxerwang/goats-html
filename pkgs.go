@@ -54,10 +54,10 @@ func (pr *PkgRefs) RefByPath(pkgPath string, forInterface bool) processors.Alias
 	return pi
 }
 
-func (pr *PkgRefs) RefByAlias(alias string) processors.AliasGetter {
+func (pr *PkgRefs) RefByAlias(alias string, forInterface bool) processors.AliasGetter {
 	pi := pr.pkgMgr.PkgByAlias(alias)
 	if pi != nil {
-		pr.pkgs[pi.path] = true
+		pr.pkgs[pi.path] = forInterface
 	}
 	return pi
 }

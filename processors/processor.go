@@ -32,8 +32,8 @@ type AliasGetter interface {
 }
 
 type AliasReferer interface {
-	RefByAlias(alias string) AliasGetter
-	RefByPath(pkgPath string, forInterface bool) AliasGetter
+	RefByAlias(string, bool) AliasGetter
+	RefByPath(string, bool) AliasGetter
 }
 
 type TagContext struct {
@@ -62,7 +62,7 @@ func (ctx *TagContext) MaybeAddImports(expression string) {
 		switch x := n.(type) {
 		case *ast.SelectorExpr:
 			selector := expression[x.Pos()-1 : x.End()-1]
-			ctx.pkgRefs.RefByAlias(strings.Split(selector, ".")[0])
+			ctx.pkgRefs.RefByAlias(strings.Split(selector, ".")[0], false)
 			return false
 		}
 		return true
