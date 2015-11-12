@@ -11,7 +11,7 @@ import (
 
 var genCmd = &Command{
 	Name:      "gen",
-	UsageLine: "goats gen [--package_root <path>] [--template_dir <path>] [--output_dir <path>] [--clean] [--keep_comments] [--sample_data] [file1.html file2.html ...]",
+	UsageLine: "goats gen [--package_root <path>] [--template_dir <path>] [--output_dir <path>] [--clean] [--keep_comments] [--sample_data] [file1.html file2.html ...] [--output-format=<format>] [--output-pkg-prefix=<prefix>]",
 	Short:     "Generate go files from goats templates.",
 	Long:      "If specific goats html files are provided, generate go files for them; otherwise, generate go files for all goats html files under template_dir.",
 }
@@ -23,6 +23,10 @@ var (
 		"template_dir", "", "Template directory relative to package root, required if no specific goats html file is given.")
 	genOutputDir = genCmd.Flag.String(
 		"output_dir", "", "Output directory relative to package root.")
+	genOutputFormat = genCmd.Flag.String(
+		"output-format", "go", "Output format, can be go (default) or closure.")
+	genOutputPkgPrefix = genCmd.Flag.String(
+		"output-pkg-prefix", "", "Output package, used for output format closure.")
 	genClean        = genCmd.Flag.Bool("clean", true, "Clean unexisting *_html directories.")
 	genKeepComments = genCmd.Flag.Bool("keep_comments", false, "Keep comment in output HTML.")
 	genSampleData   = genCmd.Flag.Bool("sample_data", false, "Keep comment in output HTML.")
@@ -30,7 +34,16 @@ var (
 	parserSettings *goats.ParserSettings
 )
 
+func checkFlags() {
+	if *genOutputFormat == "closure" && *genOutputPkgPrefix == "" {
+		fmt.Println("Flag --output-pkg-prefix is required for output format closure.")
+		os.Exit(2)
+	}
+}
+
 func runGen(cmd *Command, args []string) {
+	checkFlags()
+
 	fmt.Printf("Package root directory: %s\n", *genPkgRoot)
 	fmt.Printf("Templates directory: %s\n", *genTemplateDir)
 	fmt.Printf("Output directory: %s\n\n", *genOutputDir)
@@ -40,12 +53,14 @@ func runGen(cmd *Command, args []string) {
 	}
 
 	parserSettings = &goats.ParserSettings{
-		PkgRoot:      *genPkgRoot,
-		TemplateDir:  *genTemplateDir,
-		OutputDir:    *genOutputDir,
-		Clean:        *genClean,
-		KeepComments: *genKeepComments,
-		SampleData:   *genSampleData,
+		PkgRoot:         *genPkgRoot,
+		TemplateDir:     *genTemplateDir,
+		OutputDir:       *genOutputDir,
+		OutputFormat:    *genOutputFormat,
+		OutputPkgPrefix: *genOutputPkgPrefix,
+		Clean:           *genClean,
+		KeepComments:    *genKeepComments,
+		SampleData:      *genSampleData,
 	}
 
 	if len(args) > 0 {

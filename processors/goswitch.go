@@ -12,12 +12,21 @@ type GoSwitchProcessor struct {
 	expression string
 }
 
-func (s *GoSwitchProcessor) Process(writer io.Writer, context *TagContext) {
-	expr := context.RewriteExpression(s.expression)
-	io.WriteString(writer, fmt.Sprintf("switch %s {\n", expr))
+func (s *GoSwitchProcessor) Process(writer io.Writer, ctx *TagContext) {
+	expr, err := ctx.RewriteExpression(s.expression)
+	if err != nil {
+		panic(err)
+	}
+
+	switch ctx.OutputFormat {
+	case "go":
+		io.WriteString(writer, fmt.Sprintf("switch %s {\n", expr))
+	case "closure":
+		io.WriteString(writer, fmt.Sprintf("switch (%s) {\n", expr))
+	}
 
 	if s.next != nil {
-		s.next.Process(writer, context)
+		s.next.Process(writer, ctx)
 	}
 
 	io.WriteString(writer, "}\n")

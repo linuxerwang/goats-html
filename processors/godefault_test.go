@@ -3,6 +3,8 @@ package processors
 import (
 	"bytes"
 	"testing"
+
+	"github.com/linuxerwang/goats-html/pkgmgr"
 )
 
 func TestDefaultProcessor(t *testing.T) {
@@ -10,7 +12,7 @@ func TestDefaultProcessor(t *testing.T) {
 	dummy := NewDummyProcessor()
 	processor.SetNext(dummy)
 	var result bytes.Buffer
-	ctx := NewTagContext(NewDummyAliasReferer())
+	ctx := NewTagContext(pkgmgr.New("dummy"), pkgmgr.NewDummyAliasReferer(), "go")
 	processor.Process(&result, ctx)
 
 	if !dummy.Called {

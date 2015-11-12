@@ -11,6 +11,7 @@ import (
 	"strings"
 	txttpl "text/template"
 
+	"github.com/linuxerwang/goats-html/pkgmgr"
 	"github.com/linuxerwang/goats-html/processors"
 	"github.com/linuxerwang/goats-html/util"
 	"golang.org/x/net/html"
@@ -94,6 +95,73 @@ func New{{.Name}}Template(writer io.Writer, settings *runtime.TemplateSettings) 
 }
 `)
 
+const TemplateImplClosureFile = (`{{$tmplName := .Name}}/**
+ * @fileoverview {{$tmplName}} Template.
+ */
+
+goog.provide('{{.ClosurePkgName}}.{{$tmplName}}Template');
+
+goog.require('goats.runtime.TagAttrs');
+goog.require('goats.runtime.filters');
+goog.require('goog.dom');
+@@IMPORT@@
+
+
+
+/**
+ * The {{$tmplName}} template for packge {{.ClosurePkgName}}.
+ *
+ * @constructor
+ * @export
+ */
+{{.ClosurePkgName}}.{{$tmplName}}Template = function() {
+	/**
+	 * The caller attrs function.
+	 * @private {Function}
+	 */
+	this.callerAttrsFunc_ = null;
+};
+
+/**
+ * The render method renders the template.
+ *
+ * @param {Element} __parent The parent element.
+ * @param {Object} __args The template arguments.
+ * @export
+ */
+{{.ClosurePkgName}}.{{$tmplName}}Template.prototype.render = function(__parent, __args) {
+	var __tag_stack = [];
+	if (__parent) {
+		__tag_stack.push(__parent);
+	}
+
+@@RENDER@@
+};
+
+/**
+ * Sets the caller attrs function.
+ *
+ * @param {Function} callerAttrsFunc The function to pass the caller's attrs.
+ */
+{{.ClosurePkgName}}.{{$tmplName}}Template.prototype.setCallerAttrsFunc = function(callerAttrsFunc) {
+	this.callerAttrsFunc_ = callerAttrsFunc;
+};
+
+{{$ClosurePkgName := .ClosurePkgName}}
+{{range .Replaceables}}/**
+ * The replacement function for replaceable {{.HiddenName}}.
+ *
+ * @param {string} {{.HiddenName}} The name of the replaceable.
+ */
+{{$ClosurePkgName}}.{{$tmplName}}Template.prototype.replace{{.Name}} = function({{.HiddenName}}) {
+	/*
+	 * @private {Function}
+	 */
+	this.{{.HiddenName}}_ = {{.HiddenName}};
+};
+{{end}}
+`)
+
 // Note that to make build tags to work there must be an empty line between the
 // build tags line and the package line.
 const TemplateProxyFile = (`// +build goats_devmod
@@ -161,8 +229,9 @@ func main() {
 `)
 
 const (
-	ImplFileSuffix  = "_impl.go"
-	ProxyFileSuffix = "_proxy.go"
+	ImplFileGoSuffix      = "_impl.go"
+	ImplFileClosureSuffix = ".closure.js"
+	ProxyFileSuffix       = "_proxy.go"
 )
 
 var (
@@ -196,13 +265,13 @@ var multipleAttrs = map[string]bool{
 	"go:var":    true,
 }
 
-func formatSource(writer io.Writer, unformated string) {
+func formatSource(unformated string) string {
 	formated, err := format.Source([]byte(unformated))
 	if err != nil {
-		io.WriteString(writer, unformated)
-		log.Fatal("Failed to format the output template, ", err)
+		log.Println("Failed to format the output template, ", err)
+		return unformated
 	}
-	io.WriteString(writer, string(formated))
+	return string(formated)
 }
 
 type GoatsReplaceable struct {
@@ -225,6 +294,7 @@ type GoatsTemplate struct {
 	OutputProxyFile string
 	Pkg             string
 	PkgName         string
+	ClosurePkgName  string
 	Name            string
 	HiddenName      string
 	Args            []*processors.Argument
@@ -232,17 +302,21 @@ type GoatsTemplate struct {
 	NeedsDocType    bool
 	Replaceables    []*GoatsReplaceable
 	Replaces        []*GoatsReplace
-	pkgRefs         *PkgRefs
+	pkgRefs         *pkgmgr.PkgRefs
 }
 
 func NewGoatsTemplate(parser *GoatsParser, tmplName string, args []*processors.Argument,
-	rootNode *html.Node, needsDocType bool, pkgRefs *PkgRefs) *GoatsTemplate {
+	rootNode *html.Node, needsDocType bool, pkgRefs *pkgmgr.PkgRefs) *GoatsTemplate {
 	prefix := util.ToSnakeCase(tmplName)
+	suffix := ImplFileGoSuffix
+	if parser.Settings.OutputFormat == "closure" {
+		suffix = ImplFileClosureSuffix
+	}
 	return &GoatsTemplate{
 		Parser:          parser,
 		OutputPath:      parser.OutputPath,
 		OutputIfaceFile: fmt.Sprintf("%s.go", prefix),
-		OutputImplFile:  fmt.Sprintf("%s%s", prefix, ImplFileSuffix),
+		OutputImplFile:  fmt.Sprintf("%s%s", prefix, suffix),
 		OutputProxyFile: fmt.Sprintf("%s%s", prefix, ProxyFileSuffix),
 		Pkg:             parser.Pkg,
 		PkgName:         filepath.Base(parser.Pkg),
@@ -288,9 +362,10 @@ func (t *GoatsTemplate) generateInterface() {
 
 	// Generate imports
 	var importsBuffer bytes.Buffer
-	t.pkgRefs.GenerateImports(&importsBuffer, GenInterfaceImports)
-	text := strings.Replace(buffer.String(), "@@IMPORT@@", importsBuffer.String(), 1)
-	formatSource(goFile, text)
+	t.pkgRefs.GenerateImports(&importsBuffer, pkgmgr.GenInterfaceImports)
+	source := strings.Replace(buffer.String(), "@@IMPORT@@", importsBuffer.String(), 1)
+	source = formatSource(source)
+	io.WriteString(goFile, source)
 }
 
 func (t *GoatsTemplate) generateImpl() {
@@ -302,34 +377,76 @@ func (t *GoatsTemplate) generateImpl() {
 	defer goFile.Close()
 
 	var buffer bytes.Buffer
-	tmpl, err := txttpl.New("impl").Parse(TemplateImplFile)
-	if err != nil {
-		log.Fatal("Failed to generate file "+goFilePath, err)
-	}
-	err = tmpl.Execute(&buffer, t)
-	if err != nil {
-		log.Fatal("Failed to generate file "+goFilePath, err)
+	switch t.Parser.Settings.OutputFormat {
+	case "go":
+		tmpl, err := txttpl.New("impl").Parse(TemplateImplFile)
+		if err != nil {
+			log.Fatal("Failed to generate file "+goFilePath, err)
+		}
+		err = tmpl.Execute(&buffer, t)
+		if err != nil {
+			log.Fatal("Failed to generate file "+goFilePath, err)
+		}
+	case "closure":
+		prefix := t.Parser.Settings.OutputPkgPrefix
+		pkgName := ""
+		for i, part := range strings.Split(prefix, ".") {
+			if i == 0 {
+				pkgName = part
+			} else {
+				pkgName += "." + part
+			}
+		}
+		pkgName += "." + t.PkgName
+
+		tmpl, err := txttpl.New("impl").Parse(TemplateImplClosureFile)
+		if err != nil {
+			log.Fatal("Failed to generate file "+goFilePath, err)
+		}
+		t.ClosurePkgName = pkgName
+		err = tmpl.Execute(&buffer, t)
+		if err != nil {
+			log.Fatal("Failed to generate file "+goFilePath, err)
+		}
 	}
 
 	// Generate render content
-	var headProcessor processors.Processor = processors.NewArgProcessor(t.Args)
-	t.buildProcessorChain(headProcessor, t.RootNode)
-	context := processors.NewTagContext(t.pkgRefs)
+
+	var headProcessor processors.Processor = processors.NewHeadProcessor()
+
+	var argProcessor processors.Processor = processors.NewArgProcessor(t.Args)
+	headProcessor.SetNext(argProcessor)
+
+	t.buildProcessorChain(argProcessor, t.RootNode)
+
+	ctx := processors.NewTagContext(t.Parser.PkgMgr, t.pkgRefs, t.Parser.Settings.OutputFormat)
 	if t.NeedsDocType {
 		docTypeProcessor := processors.NewDocTypeProcessor(t.Parser.DocTypeTag, t.Parser.DocTypeAttrs)
 		docTypeProcessor.SetNext(headProcessor)
 		headProcessor = docTypeProcessor
 	}
 	var renderBuffer bytes.Buffer
-	headProcessor.Process(&renderBuffer, context)
+	headProcessor.Process(&renderBuffer, ctx)
 
-	// manage imports
-	var importsBuffer bytes.Buffer
-	t.pkgRefs.GenerateImports(&importsBuffer, GenImplImports)
-	text := strings.Replace(buffer.String(), "@@IMPORT@@", importsBuffer.String(), 1)
-	unformated := strings.Replace(text, "@@RENDER@@", renderBuffer.String(), 1)
+	source := buffer.String()
 
-	formatSource(goFile, unformated)
+	switch t.Parser.Settings.OutputFormat {
+	case "go":
+		// manage imports
+		var importsBuffer bytes.Buffer
+		t.pkgRefs.GenerateImports(&importsBuffer, pkgmgr.GenImplImports)
+		source = strings.Replace(source, "@@IMPORT@@", importsBuffer.String(), 1)
+		source = strings.Replace(source, "@@RENDER@@", renderBuffer.String(), 1)
+		source = formatSource(source)
+	case "closure":
+		// manage requires
+		var requiresBuffer bytes.Buffer
+		t.pkgRefs.GenerateRequires(&requiresBuffer)
+		source = strings.Replace(source, "@@IMPORT@@", requiresBuffer.String(), 1)
+		source = strings.Replace(source, "@@RENDER@@", renderBuffer.String(), 1)
+	}
+
+	io.WriteString(goFile, source)
 }
 
 func (t *GoatsTemplate) generateProxy() {
@@ -349,7 +466,8 @@ func (t *GoatsTemplate) generateProxy() {
 	if err != nil {
 		log.Fatal("Failed to generate file ", goFilePath, err)
 	}
-	formatSource(goFile, buffer.String())
+	source := formatSource(buffer.String())
+	io.WriteString(goFile, source)
 }
 
 func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, node *html.Node) {
@@ -364,7 +482,14 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, n
 		preProcessor.SetNext(processor)
 		preProcessor = processor
 	} else if node.Type == html.ElementNode {
+
 		goAttrs := t.getAttrMap(node)
+
+		if val, ok := goAttrs["go:var"]; ok {
+			varProcessor := processors.NewVarsProcessor(val)
+			preProcessor.SetNext(varProcessor)
+			preProcessor = varProcessor
+		}
 
 		if val, ok := goAttrs["go:if"]; ok {
 			ifProcessor := processors.NewIfProcessor(val)
@@ -376,12 +501,6 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, n
 			forProcessor := processors.NewForProcessor(val)
 			preProcessor.SetNext(forProcessor)
 			preProcessor = forProcessor
-		}
-
-		if val, ok := goAttrs["go:var"]; ok {
-			varProcessor := processors.NewVarsProcessor(val)
-			preProcessor.SetNext(varProcessor)
-			preProcessor = varProcessor
 		}
 
 		if val, ok := goAttrs["go:settings"]; ok {
@@ -420,7 +539,7 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, n
 
 		if val, ok := goAttrs["go:template"]; ok && node != t.RootNode {
 			// Convert to an in-package template call.
-			callProcessor := processors.NewCallProcessor("", val, processors.ParseArgDefs(goAttrs["go:arg"]), nil, node.Attr)
+			callProcessor := processors.NewCallProcessor("", t.ClosurePkgName, val, processors.ParseArgDefs(goAttrs["go:arg"]), nil, node.Attr)
 			preProcessor.SetNext(callProcessor)
 			preProcessor = callProcessor
 			return
@@ -466,7 +585,7 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, n
 			}
 
 			callProcessor := processors.NewCallProcessor(
-				pkgPath, callName, processors.ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
+				pkgPath, t.ClosurePkgName, callName, processors.ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
 			preProcessor.SetNext(callProcessor)
 			preProcessor = callProcessor
 
@@ -494,6 +613,7 @@ func (t *GoatsTemplate) handleTag(preProcessor processors.Processor, node *html.
 	if _, ok := goAttrs["go:template"]; ok {
 		firstTag = true
 	}
+
 	tagProcessor := processors.NewTagProcessor(node.Data, omitTag, firstTag, !voidElements[node.Data], node.Attr)
 	preProcessor.SetNext(tagProcessor)
 	preProcessor = tagProcessor

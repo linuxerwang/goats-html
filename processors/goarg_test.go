@@ -3,6 +3,8 @@ package processors
 import (
 	"bytes"
 	"testing"
+
+	"github.com/linuxerwang/goats-html/pkgmgr"
 )
 
 func TestNewArgDefWithValue(t *testing.T) {
@@ -43,19 +45,36 @@ func TestParseArgCalls(t *testing.T) {
 	assertAuthorCall(t, args[1])
 }
 
-func TestProcessor(t *testing.T) {
+func TestProcessorGo(t *testing.T) {
 	argDef := " book \t: \tproto.Book \t = \t books[0] "
 	arg := NewArgDef(argDef)
 	processor := NewArgProcessor([]*Argument{arg})
 	dummy := NewDummyProcessor()
 	processor.SetNext(dummy)
 	var result bytes.Buffer
-	ctx := NewTagContext(NewDummyAliasReferer())
+	ctx := NewTagContext(pkgmgr.New("dummy"), pkgmgr.NewDummyAliasReferer(), "go")
 	processor.Process(&result, ctx)
 	if !dummy.Called {
 		t.Errorf("Expect calling the dummy processor but was not.")
 	}
 	if result.String() != "book := __args.Book\nDUMMY" {
+		t.Errorf("Expected arg block was not found. ", result.String())
+	}
+}
+
+func TestProcessorClosure(t *testing.T) {
+	argDef := " book \t: \tproto.Book \t = \t books[0] "
+	arg := NewArgDef(argDef)
+	processor := NewArgProcessor([]*Argument{arg})
+	dummy := NewDummyProcessor()
+	processor.SetNext(dummy)
+	var result bytes.Buffer
+	ctx := NewTagContext(pkgmgr.New("dummy"), pkgmgr.NewDummyAliasReferer(), "closure")
+	processor.Process(&result, ctx)
+	if !dummy.Called {
+		t.Errorf("Expect calling the dummy processor but was not.")
+	}
+	if result.String() != "var book = __args[\"book\"];\nDUMMY" {
 		t.Errorf("Expected arg block was not found. ", result.String())
 	}
 }
@@ -98,7 +117,7 @@ func assertAuthorArg(t *testing.T, arg *Argument) {
 		t.Error("Expect arg value \"author\" but was not.")
 	}
 	if arg.Declare != "Author proto.Author" {
-		t.Error("Expect arg declare \"Author proto.Author\" but was not.", arg.Declare)
+		t.Error("Expect arg declare \"Author proto.Author\" but got.", arg.Declare)
 	}
 }
 
@@ -106,8 +125,8 @@ func assertBookCall(t *testing.T, arg *Argument) {
 	if arg.Name != "book" {
 		t.Error("Expect arg name \"book\" but was not.")
 	}
-	if arg.Val != "data.ComicBooks[0]" {
-		t.Error("Expect arg value \"data.ComicBooks[0]\" but was not.", arg.Val)
+	if arg.Val != "data.comic_books[0]" {
+		t.Error("Expect arg value \"data.comic_books[0]\" but got ", arg.Val)
 	}
 }
 
@@ -115,7 +134,7 @@ func assertAuthorCall(t *testing.T, arg *Argument) {
 	if arg.Name != "author" {
 		t.Error("Expect arg name \"author\" but was not.")
 	}
-	if arg.Val != "data.BookAuthors[0]" {
-		t.Error("Expect arg value \"data.BookAuthors[0]\" but was not.")
+	if arg.Val != "data.book_authors[0]" {
+		t.Error("Expect arg value \"data.book_authors[0]\" but was not.")
 	}
 }

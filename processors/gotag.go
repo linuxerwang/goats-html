@@ -56,125 +56,218 @@ type GoTagProcessor struct {
 	attrs           []html.Attribute
 }
 
-func (t *GoTagProcessor) Process(writer io.Writer, context *TagContext) {
-	originalAutoEscape := context.AutoEscape
-
+func (t *GoTagProcessor) Process(writer io.Writer, ctx *TagContext) {
+	originalAutoEscape := ctx.AutoEscape
 	// There might be imports for constants or enums
 	for _, attr := range t.attrs {
 		if attr.Key == "go:autoescape" {
-			context.AutoEscape = (attr.Val == "true")
+			ctx.AutoEscape = (attr.Val == "true")
+			break
 		}
 	}
 
 	// Start local scope.
 	io.WriteString(writer, "{\n")
-	if t.firstTag {
-		t.processFirstTag(writer, context)
-		t.processChildrenTags(writer, context)
-		t.maybeCloseTag(writer)
-	} else {
-		t.processSubseqTag(writer, context)
-		t.processChildrenTags(writer, context)
-		t.maybeCloseTag(writer)
+
+	switch ctx.OutputFormat {
+	case "closure":
+		io.WriteString(writer, "var __element = null;\n")
+		io.WriteString(writer, "var __attrs = new goats.runtime.TagAttrs();\n")
 	}
+
+	if t.firstTag {
+		t.processFirstTag(writer, ctx)
+	} else {
+		t.processSubseqTag(writer, ctx)
+	}
+
+	switch ctx.OutputFormat {
+	case "closure":
+		io.WriteString(writer, "if (__element) {\n")
+		io.WriteString(writer, "goog.dom.appendChild(__tag_stack[__tag_stack.length-1], __element);\n")
+		io.WriteString(writer, "__tag_stack.push(__element);\n")
+		io.WriteString(writer, "}\n")
+	}
+
+	t.processChildrenTags(writer, ctx)
+
+	switch ctx.OutputFormat {
+	case "closure":
+		io.WriteString(writer, "if (__element) {\n")
+		io.WriteString(writer, "__tag_stack.pop();\n")
+		io.WriteString(writer, "}\n")
+	}
+
+	t.maybeCloseTag(writer, ctx)
+
 	// End local scope.
 	io.WriteString(writer, "}\n")
 
-	context.AutoEscape = originalAutoEscape
+	ctx.AutoEscape = originalAutoEscape
 }
 
-func (t *GoTagProcessor) processFirstTag(writer io.Writer, context *TagContext) {
-	// Vars for attributes
-	io.WriteString(writer, "var __omitTag bool = false\n")
-	io.WriteString(writer, "var __attrs = &runtime.TagAttrs{}\n")
-	// Local attributes
-	t.genLocalAttrs(writer, context)
-	// Caller attributes may overwrite local attrs.
-	io.WriteString(writer, "if __callerAttrsFunc := __impl.GetCallerAttrsFunc(); __callerAttrsFunc != nil {\n")
-	io.WriteString(writer, "  var __callerAttrs runtime.TagAttrs\n")
-	io.WriteString(writer, "  __callerAttrs, __callerHasOmitTag, __callerOmitTag := __callerAttrsFunc()\n")
-	io.WriteString(writer, "  __attrs.MergeFrom(__callerAttrs)\n")
-	io.WriteString(writer, "  if __callerHasOmitTag {\n")
-	io.WriteString(writer, "    if __callerOmitTag {\n")
-	io.WriteString(writer, "      __omitTag = true\n")
-	io.WriteString(writer, "    } else {\n")
-	io.WriteString(writer, fmt.Sprintf("    __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
-	io.WriteString(writer, "    }\n")
-	io.WriteString(writer, "  } else {\n")
-	if t.hasOmitTag {
-		t.genConditionalTag(writer)
-	} else {
-		io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
+func (t *GoTagProcessor) processFirstTag(writer io.Writer, ctx *TagContext) {
+	switch ctx.OutputFormat {
+	case "go":
+		// Vars for attributes
+		io.WriteString(writer, "var __omitTag bool = false\n")
+		io.WriteString(writer, "var __attrs = runtime.TagAttrs{}\n")
+		// Local attributes
+		t.genLocalAttrs(writer, ctx)
+		// Caller attributes may overwrite local attrs.
+		io.WriteString(writer, "if __callerAttrsFunc := __impl.GetCallerAttrsFunc(); __callerAttrsFunc != nil {\n")
+		io.WriteString(writer, "  var __callerAttrs runtime.TagAttrs\n")
+		io.WriteString(writer, "  __callerAttrs, __callerHasOmitTag, __callerOmitTag := __callerAttrsFunc()\n")
+		io.WriteString(writer, "  __attrs.MergeFrom(__callerAttrs)\n")
+		io.WriteString(writer, "  if __callerHasOmitTag {\n")
+		io.WriteString(writer, "    if __callerOmitTag {\n")
+		io.WriteString(writer, "      __omitTag = true\n")
+		io.WriteString(writer, "    } else {\n")
+		io.WriteString(writer, fmt.Sprintf("    __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
+		io.WriteString(writer, "    }\n")
+		io.WriteString(writer, "  } else {\n")
+		if t.hasOmitTag {
+			t.genConditionalTag(writer, ctx)
+		} else {
+			io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
+		}
+		io.WriteString(writer, "  }\n")
+		io.WriteString(writer, "} else {\n")
+		if !t.hasOmitTag || t.omitTag == "false" {
+			io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
+		} else if t.omitTag == "true" {
+			io.WriteString(writer, "  __omitTag = true\n")
+			// Do not output tag.
+		} else {
+			t.genConditionalTag(writer, ctx)
+		}
+		io.WriteString(writer, "}\n")
+	case "closure":
+		// Vars for attributes
+		io.WriteString(writer, "var __omitTag = false;\n")
+		// Local attributes
+		t.genLocalAttrs(writer, ctx)
+		// Caller attributes may overwrite local attrs.
+		io.WriteString(writer, "if (this.callerAttrsFunc_) {\n")
+		io.WriteString(writer, "  var __callerAttrs = this.callerAttrsFunc_();\n")
+		io.WriteString(writer, "  __attrs.mergeFrom(__callerAttrs.attrs);\n")
+		io.WriteString(writer, "  if (__callerAttrs.hasOmitTag) {\n")
+		io.WriteString(writer, "    if (__callerAttrs.omitTag) {\n")
+		io.WriteString(writer, "      __omitTag = true;\n")
+		io.WriteString(writer, "    }\n")
+		io.WriteString(writer, "  } else {\n")
+		if t.hasOmitTag {
+			io.WriteString(writer, fmt.Sprintf("__omitTag = %s;\n", t.omitTag))
+		}
+		io.WriteString(writer, "  }\n")
+		io.WriteString(writer, "}\n")
+		io.WriteString(writer, "if (!__omitTag) {\n")
+		io.WriteString(writer, fmt.Sprintf("  __element = goog.dom.createDom(\"%s\", __attrs);\n", t.tagName))
+		io.WriteString(writer, "}\n")
 	}
-	io.WriteString(writer, "  }\n")
-	io.WriteString(writer, "} else {\n")
-	if !t.hasOmitTag || t.omitTag == "false" {
-		io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
-	} else if t.omitTag == "true" {
-		io.WriteString(writer, "  __omitTag = true\n")
-		// Do not output tag.
-	} else {
-		t.genConditionalTag(writer)
-	}
-	io.WriteString(writer, "}\n")
 }
 
-func (t *GoTagProcessor) processSubseqTag(writer io.Writer, context *TagContext) {
+func (t *GoTagProcessor) processSubseqTag(writer io.Writer, ctx *TagContext) {
 	switch t.omitTag {
 	case "true":
 		// Do nothing
 	case "", "false":
 		if t.hasOnlyStaticAttrs() {
-			attrs := &runtime.TagAttrs{}
+			attrs := runtime.TagAttrs{}
 			for _, attr := range t.attrs {
 				if !strings.HasPrefix(attr.Key, "go:") {
 					attrs.AddAttr(attr.Key, attr.Val)
 				}
 			}
-			var tagBuffer bytes.Buffer
-			attrs.GenTagAndAttrs(&tagBuffer, t.tagName)
-			io.WriteString(writer,
-				fmt.Sprintf("__impl.WriteString(\"%s\")\n",
-					strings.Replace(tagBuffer.String(), "\"", "\\\"", -1)))
+			switch ctx.OutputFormat {
+			case "go":
+				var tagBuffer bytes.Buffer
+				attrs.GenTagAndAttrs(&tagBuffer, t.tagName)
+				io.WriteString(writer,
+					fmt.Sprintf("__impl.WriteString(\"%s\")\n",
+						strings.Replace(tagBuffer.String(), "\"", "\\\"", -1)))
+			case "closure":
+				io.WriteString(writer, fmt.Sprintf("__element = goog.dom.createElement(\"%s\");\n", t.tagName))
+				for k, v := range map[string]string(attrs) {
+					io.WriteString(writer, fmt.Sprintf("__element.setAttribute(\"%s\", \"%s\");\n", k, v))
+				}
+			}
 		} else {
-			io.WriteString(writer, "  var __attrs = &runtime.TagAttrs{}\n")
-			t.genLocalAttrs(writer, context)
-			io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
+			switch ctx.OutputFormat {
+			case "go":
+				io.WriteString(writer, "  var __attrs = runtime.TagAttrs{}\n")
+				t.genLocalAttrs(writer, ctx)
+				io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
+			case "closure":
+				t.genLocalAttrs(writer, ctx)
+				io.WriteString(writer, fmt.Sprintf("__element = goog.dom.createDom(\"%s\", __attrs);\n", t.tagName))
+			}
 		}
 	default:
-		io.WriteString(writer, fmt.Sprintf("if !%s {\n", t.omitTag))
-		io.WriteString(writer, "var __omitTag bool = false\n")
-		io.WriteString(writer, "  var __attrs = &runtime.TagAttrs{}\n")
+		switch ctx.OutputFormat {
+		case "go":
+			io.WriteString(writer, fmt.Sprintf("if !%s {\n", t.omitTag))
+			io.WriteString(writer, "var __omitTag bool = false\n")
+			io.WriteString(writer, "  var __attrs = runtime.TagAttrs{}\n")
+			io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
+			t.genLocalAttrs(writer, ctx)
+			t.genConditionalTag(writer, ctx)
+			io.WriteString(writer, "} else {\n")
+			io.WriteString(writer, "  __omitTag = true\n")
+			// Do nothing
+			io.WriteString(writer, "}\n")
+		case "closure":
+			io.WriteString(writer, fmt.Sprintf("if (!%s) {\n", t.omitTag))
+			io.WriteString(writer, "var __omitTag = false;\n")
+			io.WriteString(writer, "  var __attrs = {};\n")
+			io.WriteString(writer, fmt.Sprintf("__element = goog.dom.createDom(\"%s\", __attrs);\n", t.tagName))
+			t.genLocalAttrs(writer, ctx)
+			t.genConditionalTag(writer, ctx)
+			io.WriteString(writer, "} else {\n")
+			io.WriteString(writer, "  __omitTag = true;\n")
+			// Do nothing
+			io.WriteString(writer, "}\n")
+		}
+	}
+}
+
+func (t *GoTagProcessor) genConditionalTag(writer io.Writer, ctx *TagContext) {
+	switch ctx.OutputFormat {
+	case "go":
+		io.WriteString(writer, fmt.Sprintf("__omitTag = %s\n", t.omitTag))
+		io.WriteString(writer, "if !__omitTag {\n")
 		io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
-		t.genLocalAttrs(writer, context)
-		t.genConditionalTag(writer)
-		io.WriteString(writer, "} else {\n")
-		io.WriteString(writer, "  __omitTag = true\n")
-		// Do nothing
+		io.WriteString(writer, "}\n")
+	case "closure":
+		io.WriteString(writer, fmt.Sprintf("__omitTag = %s;\n", t.omitTag))
+		io.WriteString(writer, "if (!__omitTag) {\n")
+		io.WriteString(writer, fmt.Sprintf("  __element = goog.dom.createDom(\"%s\", __attrs);\n", t.tagName))
 		io.WriteString(writer, "}\n")
 	}
 }
 
-func (t *GoTagProcessor) genConditionalTag(writer io.Writer) {
-	io.WriteString(writer, fmt.Sprintf("__omitTag = %s\n", t.omitTag))
-	io.WriteString(writer, "if !__omitTag {\n")
-	io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
-	io.WriteString(writer, "}\n")
-}
-
-func (t *GoTagProcessor) genLocalAttrs(writer io.Writer, context *TagContext) {
+func (t *GoTagProcessor) genLocalAttrs(writer io.Writer, ctx *TagContext) {
 	for _, attr := range t.attrs {
 		if attr.Key == "go:attr" {
 			varName, varVal := util.SplitVarDef(attr.Val)
-			context.ExprParser.Evaluate(varVal, writer, func(expr string) {
-				io.WriteString(writer,
-					fmt.Sprintf("__attrs.AddAttr(\"%s\", %s)\n", varName, expr))
+			ctx.ExprParser.Evaluate(varVal, writer, func(expr string) {
+				switch ctx.OutputFormat {
+				case "go":
+					io.WriteString(writer, fmt.Sprintf("__attrs.AddAttr(\"%s\", %s)\n", varName, expr))
+				case "closure":
+					io.WriteString(writer, fmt.Sprintf("__attrs.add(\"%s\", %s);\n", varName, expr))
+				}
 			})
 		} else if !strings.HasPrefix(attr.Key, "go:") {
 			// Static attrs
-			io.WriteString(writer,
-				fmt.Sprintf("__attrs.AddAttr(\"%s\", \"%s\")\n",
-					util.TrimWhiteSpaces(attr.Key), util.TrimWhiteSpaces(attr.Val)))
+			switch ctx.OutputFormat {
+			case "go":
+				io.WriteString(writer,
+					fmt.Sprintf("__attrs.AddAttr(\"%s\", \"%s\")\n",
+						util.TrimWhiteSpaces(attr.Key), util.TrimWhiteSpaces(attr.Val)))
+			case "closure":
+				io.WriteString(writer, fmt.Sprintf("__attrs.add(\"%s\", \"%s\");\n", util.TrimWhiteSpaces(attr.Key), util.TrimWhiteSpaces(attr.Val)))
+			}
 		}
 	}
 }
@@ -188,10 +281,10 @@ func (t *GoTagProcessor) hasOnlyStaticAttrs() bool {
 	return true
 }
 
-func (t *GoTagProcessor) processChildrenTags(writer io.Writer, context *TagContext) {
-	originalAutoEscape := context.AutoEscape
+func (t *GoTagProcessor) processChildrenTags(writer io.Writer, ctx *TagContext) {
+	originalAutoEscape := ctx.AutoEscape
 	if t.tagName == "script" || t.tagName == "style" {
-		context.AutoEscape = false
+		ctx.AutoEscape = false
 	}
 
 	head := NewHeadProcessor()
@@ -201,23 +294,26 @@ func (t *GoTagProcessor) processChildrenTags(writer io.Writer, context *TagConte
 	tail := t.getTail(head)
 	callback := NewCallbackProcessor(func() {
 		for _, child := range t.childProcessors {
-			child.Process(writer, context)
+			child.Process(writer, ctx)
 		}
 	})
 	tail.SetNext(callback)
-	head.Process(writer, context)
+	head.Process(writer, ctx)
 
-	context.AutoEscape = originalAutoEscape
+	ctx.AutoEscape = originalAutoEscape
 }
 
-func (t *GoTagProcessor) maybeCloseTag(writer io.Writer) {
-	if t.needsClosing {
-		if t.firstTag || t.isDynamicOmitTag() {
-			io.WriteString(writer, "if !__omitTag {\n")
-			t.closeTag(writer)
-			io.WriteString(writer, "}\n")
-		} else if t.omitTag == "" || t.omitTag == "false" {
-			t.closeTag(writer)
+func (t *GoTagProcessor) maybeCloseTag(writer io.Writer, ctx *TagContext) {
+	switch ctx.OutputFormat {
+	case "go":
+		if t.needsClosing {
+			if t.firstTag || t.isDynamicOmitTag() {
+				io.WriteString(writer, "if (!__omitTag) {\n")
+				t.closeTag(writer)
+				io.WriteString(writer, "}\n")
+			} else if t.omitTag == "" || t.omitTag == "false" {
+				t.closeTag(writer)
+			}
 		}
 	}
 }

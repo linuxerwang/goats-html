@@ -3,6 +3,7 @@ package goats
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -11,18 +12,21 @@ import (
 	txttpl "text/template"
 	"time"
 
+	"github.com/linuxerwang/goats-html/pkgmgr"
 	"github.com/linuxerwang/goats-html/processors"
 	"github.com/linuxerwang/goats-html/util"
 	"golang.org/x/net/html"
 )
 
 type ParserSettings struct {
-	PkgRoot      string
-	TemplateDir  string
-	OutputDir    string
-	Clean        bool
-	KeepComments bool
-	SampleData   bool
+	PkgRoot         string
+	TemplateDir     string
+	OutputDir       string
+	OutputFormat    string
+	OutputPkgPrefix string
+	Clean           bool
+	KeepComments    bool
+	SampleData      bool
 }
 
 // The goats template parser. There is one parser per template file.
@@ -37,7 +41,7 @@ type GoatsParser struct {
 	DocTypeTag   string
 	DocTypeAttrs []html.Attribute
 	Templates    map[string]*GoatsTemplate
-	PkgMgr       *PkgManager
+	PkgMgr       *pkgmgr.PkgManager
 }
 
 func (p *GoatsParser) loadFile() {
@@ -66,16 +70,27 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 				impt := util.TrimWhiteSpaces(attr.Val)
 				if strings.Contains(impt, ":") {
 					parts := strings.Split(impt, ":")
-					p.PkgMgr.AddImport(util.TrimWhiteSpaces(parts[0]), util.TrimWhiteSpaces(parts[1]))
+					pbPkg := ""
+					if i := strings.Index(parts[1], "[pb]"); i > -1 {
+						pbPkg = parts[1][i+4:]
+						parts[1] = parts[1][:i]
+					}
+					p.PkgMgr.AddImport(util.TrimWhiteSpaces(parts[0]), util.TrimWhiteSpaces(parts[1]), util.TrimWhiteSpaces(pbPkg))
 				} else {
-					p.PkgMgr.AddImport(util.TrimWhiteSpaces(path.Base(impt)), util.TrimWhiteSpaces(impt))
+					pbPkg := ""
+					if i := strings.Index(impt, "[pb]"); i > -1 {
+						pbPkg = impt[i+4:]
+						impt = impt[:i]
+					}
+					p.PkgMgr.AddImport(util.TrimWhiteSpaces(path.Base(impt)), util.TrimWhiteSpaces(impt), util.TrimWhiteSpaces(pbPkg))
 				}
 			} else if attr.Key == "go:call" {
 				if node.Data == "html" {
 					panic("Attr go:call is not allowed on <html> tag.")
 				}
 				pkgPath, _ := p.PkgMgr.ParseTmplCall(attr.Val)
-				p.PkgMgr.AddImport("", pkgPath)
+				// TODO: handle pb variation.
+				p.PkgMgr.AddImport("", pkgPath, "")
 				break
 			}
 		}
@@ -145,7 +160,7 @@ func (p *GoatsParser) findReplaceables(node *html.Node, template *GoatsTemplate)
 					log.Fatal("Found multiple go:replaceable on the same node.")
 				}
 				foundReplaceable = true
-				replaceable.Name = attr.Val
+				replaceable.Name = strings.Title(attr.Val)
 				replaceable.HiddenName = util.ToHiddenName(attr.Val)
 				template.Replaceables = append(template.Replaceables, replaceable)
 			}
@@ -207,12 +222,16 @@ func (p *GoatsParser) Generate() {
 
 	for name, template := range p.Templates {
 		fmt.Printf("    Generating template \"%s\":\n", name)
-		fmt.Printf("        %s\n", template.OutputIfaceFile)
-		template.generateInterface()
+		if p.Settings.OutputFormat == "go" {
+			fmt.Printf("        %s\n", template.OutputIfaceFile)
+			template.generateInterface()
+		}
 		fmt.Printf("        %s\n", template.OutputImplFile)
 		template.generateImpl()
-		fmt.Printf("        %s\n", template.OutputProxyFile)
-		template.generateProxy()
+		if p.Settings.OutputFormat == "go" {
+			fmt.Printf("        %s\n", template.OutputProxyFile)
+			template.generateProxy()
+		}
 	}
 
 	fmt.Println("    Generating main file " + MainFileName)
@@ -236,7 +255,8 @@ func (p *GoatsParser) generateMain() {
 	if err != nil {
 		log.Fatal("Failed to generate file ", goFilePath, err)
 	}
-	formatSource(goFile, buffer.String())
+	source := formatSource(buffer.String())
+	io.WriteString(goFile, source)
 }
 
 func NewParser(parserSettings *ParserSettings, htmlFilePath string) *GoatsParser {
@@ -264,7 +284,7 @@ func NewParser(parserSettings *ParserSettings, htmlFilePath string) *GoatsParser
 		log.Fatal("Invalid output path: ", outputPath)
 	}
 
-	pkgMgr := NewPkgManager(path.Join(parserSettings.OutputDir, prefix))
+	pkgMgr := pkgmgr.New(path.Join(parserSettings.OutputDir, prefix))
 
 	pkg := path.Join(parserSettings.OutputDir, prefix, pkgName)
 	p := &GoatsParser{

@@ -12,9 +12,9 @@ func TestExprParser_0(t *testing.T) {
 		elif (a + c > 100) "exit" else "!"`
 	expected := `if (a>5) {
 attrVar = format("hello, %s",a.Name)+b.CallIt()+a
-} else if a>2 {
+} else if (a>2) {
 attrVar = format("world, %s",a.Name)+a
-} else if a+c>100 {
+} else if (a+c>100) {
 attrVar = "exit"
 } else {
 attrVar = "!"
@@ -28,9 +28,9 @@ func TestExprParser_1(t *testing.T) {
 	src := `"hello" if ((a + b) > 100) elif (a > 50) ("world" + " war") elif (a > 30) "haha" else "done"`
 	expected := `if ((a+b)>100) {
 attrVar = "hello"
-} else if a>50 {
+} else if (a>50) {
 attrVar = ("world"+" war")
-} else if a>30 {
+} else if (a>30) {
 attrVar = "haha"
 } else {
 attrVar = "done"
@@ -75,7 +75,7 @@ func TestExprParser_5(t *testing.T) {
 	src := `format("hello, %s", a.Name) + b.CallIt() + a if (a > 30) elif (a > 10) "great" + a.Name`
 	expected := `if (a>30) {
 attrVar = format("hello, %s",a.Name)+b.CallIt()+a
-} else if a>10 {
+} else if (a>10) {
 attrVar = "great"+a.Name
 }
 
@@ -85,8 +85,8 @@ attrVar = "great"+a.Name
 
 type fakeExprHandler struct{}
 
-func (fe *fakeExprHandler) RewriteExpression(originalExpr string) string {
-	return originalExpr
+func (fe *fakeExprHandler) RewriteExpression(originalExpr string) (string, error) {
+	return originalExpr, nil
 }
 
 func testExprParser(t *testing.T, src, expected string) {

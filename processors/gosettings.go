@@ -10,15 +10,19 @@ type GoSettingsProcessor struct {
 	Name string
 }
 
-func (s *GoSettingsProcessor) Process(writer io.Writer, context *TagContext) {
+func (s *GoSettingsProcessor) Process(writer io.Writer, ctx *TagContext) {
 	// Start of a local scope
 	io.WriteString(writer, "{\n")
 
-	io.WriteString(writer, fmt.Sprintf("%s := %s", s.Name, "__impl.GetSettings()"))
-	io.WriteString(writer, "\n")
+	switch ctx.OutputFormat {
+	case "go":
+		io.WriteString(writer, fmt.Sprintf("%s := %s\n", s.Name, "__impl.GetSettings()"))
+	case "closure":
+		io.WriteString(writer, fmt.Sprintf("var %s = %s;\n", s.Name, "this.__getSettings()"))
+	}
 
 	if s.next != nil {
-		s.next.Process(writer, context)
+		s.next.Process(writer, ctx)
 	}
 
 	// End of a local scope

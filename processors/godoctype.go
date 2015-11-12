@@ -20,25 +20,28 @@ type GoDocTypeProcessor struct {
 	attrs []html.Attribute
 }
 
-func (d *GoDocTypeProcessor) Process(writer io.Writer, context *TagContext) {
-	var doctype bytes.Buffer
-	doctype.WriteString(fmt.Sprintf(DOCTYPE, d.name))
-	for _, attr := range d.attrs {
-		if attr.Key == PUBLIC {
-			doctype.WriteString(" PUBLIC")
-		} else if attr.Key == SYSTEM {
-			// Do nothing
+func (d *GoDocTypeProcessor) Process(writer io.Writer, ctx *TagContext) {
+	switch ctx.OutputFormat {
+	case "go":
+		var doctype bytes.Buffer
+		doctype.WriteString(fmt.Sprintf(DOCTYPE, d.name))
+		for _, attr := range d.attrs {
+			if attr.Key == PUBLIC {
+				doctype.WriteString(" PUBLIC")
+			} else if attr.Key == SYSTEM {
+				// Do nothing
+			}
+			doctype.WriteString(" \\\"" + attr.Val + "\\\"")
 		}
-		doctype.WriteString(" \\\"" + attr.Val + "\\\"")
-	}
-	doctype.WriteString(">\\n")
+		doctype.WriteString(">\\n")
 
-	io.WriteString(writer, "if !__impl.GetSettings().OmitDocType {\n")
-	io.WriteString(writer, fmt.Sprintf("__impl.WriteString(\"%s\")\n", doctype.String()))
-	io.WriteString(writer, "}\n")
+		io.WriteString(writer, "if !__impl.GetSettings().OmitDocType {\n")
+		io.WriteString(writer, fmt.Sprintf("__impl.WriteString(\"%s\")\n", doctype.String()))
+		io.WriteString(writer, "}\n")
+	}
 
 	if d.next != nil {
-		d.next.Process(writer, context)
+		d.next.Process(writer, ctx)
 	}
 }
 

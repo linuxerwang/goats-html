@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/linuxerwang/goats-html/pkgmgr"
 	"golang.org/x/net/html"
 )
 
@@ -20,7 +21,7 @@ func TestNewDocTypeProcessor(t *testing.T) {
 	dummy := NewDummyProcessor()
 	processor.SetNext(dummy)
 	var result bytes.Buffer
-	ctx := NewTagContext(NewDummyAliasReferer())
+	ctx := NewTagContext(pkgmgr.New("dummy"), pkgmgr.NewDummyAliasReferer(), "go")
 	processor.Process(&result, ctx)
 
 	if !dummy.Called {

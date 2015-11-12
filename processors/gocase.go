@@ -12,12 +12,23 @@ type GoCaseProcessor struct {
 	expression string
 }
 
-func (s *GoCaseProcessor) Process(writer io.Writer, context *TagContext) {
-	context.MaybeAddImports(s.expression)
-	io.WriteString(writer, fmt.Sprintf("case %s:\n", util.ToGoString(util.ToCamelExpr(s.expression))))
+func (gcp *GoCaseProcessor) Process(writer io.Writer, ctx *TagContext) {
+	ctx.MaybeAddImports(gcp.expression)
 
-	if s.next != nil {
-		s.next.Process(writer, context)
+	s, err := ctx.RewriteExpression(gcp.expression)
+	if err != nil {
+		panic("Error, " + err.Error())
+	}
+
+	io.WriteString(writer, fmt.Sprintf("case %s:\n", s))
+
+	if gcp.next != nil {
+		gcp.next.Process(writer, ctx)
+	}
+
+	switch ctx.OutputFormat {
+	case "closure":
+		io.WriteString(writer, "\nbreak;\n")
 	}
 }
 

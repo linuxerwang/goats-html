@@ -13,7 +13,7 @@ type GoTextProcessor struct {
 	text string
 }
 
-func (i *GoTextProcessor) Process(writer io.Writer, context *TagContext) {
+func (i *GoTextProcessor) Process(writer io.Writer, ctx *TagContext) {
 	// i.text is the (possiblly) merged text, its white space handling logic:
 	//     - If before normalizing it has leading white space,
 	//       it should have one leading space after normalizing.
@@ -31,11 +31,16 @@ func (i *GoTextProcessor) Process(writer io.Writer, context *TagContext) {
 		if hasTrailingSpace {
 			text = text + " "
 		}
-		if context.AutoEscape {
+		if ctx.AutoEscape {
 			text = html.EscapeString(text)
 		}
-		io.WriteString(writer, fmt.Sprintf("__impl.WriteString(\"%s\")", text))
-		io.WriteString(writer, "\n")
+		switch ctx.OutputFormat {
+		case "go":
+			io.WriteString(writer, fmt.Sprintf("__impl.WriteString(\"%s\")\n", text))
+		case "closure":
+			io.WriteString(writer, fmt.Sprintf("var __text_node = goog.dom.createTextNode(\"%s\");\n", text))
+			io.WriteString(writer, fmt.Sprintf("goog.dom.appendChild(__tag_stack[__tag_stack.length-1], __text_node);\n"))
+		}
 	}
 	// go text is a terminal processor.
 }

@@ -8,8 +8,10 @@ import (
 	"text/scanner"
 )
 
+// ExprHandler represents any object which can rewrite an expression
+// according to certain rules.
 type ExprHandler interface {
-	RewriteExpression(originalExpr string) string
+	RewriteExpression(originalExpr string) (string, error)
 }
 
 type OnEvalExpr func(expr string)
@@ -95,11 +97,13 @@ func (ep *ExprParser) render(w io.Writer, callback OnEvalExpr) error {
 	foundIf := ep.ifPos > -1
 	foundElif := len(ep.elifPos) > 0
 	foundElse := ep.elsePos > -1
-	var err error
 
 	if !(foundIf || foundElif || foundElse) {
-		callback(ep.eh.RewriteExpression(strings.Join(ep.token_text, "")))
-		return err
+		expr, err := ep.eh.RewriteExpression(strings.Join(ep.token_text, ""))
+		if err != nil {
+			return err
+		}
+		callback(expr)
 	} else {
 		if ep.token_text[ep.ifPos+1] != "(" {
 			return errors.New("Syntax Error: conditional must be enclosed in ()")
@@ -116,13 +120,23 @@ func (ep *ExprParser) render(w io.Writer, callback OnEvalExpr) error {
 		if ep.token_text[n-1] != ")" {
 			return errors.New("Syntax Error: conditional must be enclosed in ()")
 		}
-		_, err = w.Write([]byte(fmt.Sprintf("if %s {\n",
-			ep.eh.RewriteExpression(strings.Join(ep.token_text[ep.ifPos+1:n], "")))))
+
+		expr, err := ep.eh.RewriteExpression(strings.Join(ep.token_text[ep.ifPos+1:n], ""))
 		if err != nil {
 			return err
 		}
 
-		callback(ep.eh.RewriteExpression(strings.Join(ep.token_text[:ep.ifPos], "")))
+		_, err = w.Write([]byte(fmt.Sprintf("if %s {\n", expr)))
+		if err != nil {
+			return err
+		}
+
+		expr, err = ep.eh.RewriteExpression(strings.Join(ep.token_text[:ep.ifPos], ""))
+		if err != nil {
+			return err
+		}
+
+		callback(expr)
 
 		for i, pos := range ep.elifPos {
 			n = len(ep.token_text) - 1
@@ -134,22 +148,34 @@ func (ep *ExprParser) render(w io.Writer, callback OnEvalExpr) error {
 			if ep.token_text[pos+1] != "(" {
 				return errors.New("Syntax Error: conditional must be enclosed in ()")
 			}
+
 			cond, expr, err := ep.parseCondExpr(pos+2, n)
 			if err != nil {
 				return err
 			}
-			_, err = w.Write([]byte(fmt.Sprintf("} else if %s {\n", cond)))
+
+			_, err = w.Write([]byte(fmt.Sprintf("} else if (%s) {\n", cond)))
 			if err != nil {
 				return err
 			}
-			callback(ep.eh.RewriteExpression(expr))
+
+			expr, err = ep.eh.RewriteExpression(expr)
+			if err != nil {
+				return err
+			}
+
+			callback(expr)
 		}
 		if ep.elsePos > -1 {
 			_, err = w.Write([]byte("} else {\n"))
 			if err != nil {
 				return err
 			}
-			callback(ep.eh.RewriteExpression(strings.Join(ep.token_text[ep.elsePos+1:], "")))
+			expr, err = ep.eh.RewriteExpression(strings.Join(ep.token_text[ep.elsePos+1:], ""))
+			if err != nil {
+				return err
+			}
+			callback(expr)
 		}
 		_, err = w.Write([]byte("}\n"))
 		if err != nil {
@@ -178,8 +204,18 @@ func (ep *ExprParser) parseCondExpr(start, end int) (string, string, error) {
 	if d == end {
 		return "", "", errors.New("Syntax Error: no expression found after conditional.")
 	}
-	return ep.eh.RewriteExpression(strings.Join(ep.token_text[start:d], "")),
-		ep.eh.RewriteExpression(strings.Join(ep.token_text[d+1:end+1], "")), nil
+
+	e1, err := ep.eh.RewriteExpression(strings.Join(ep.token_text[start:d], ""))
+	if err != nil {
+		return "", "", err
+	}
+
+	e2, err := ep.eh.RewriteExpression(strings.Join(ep.token_text[d+1:end+1], ""))
+	if err != nil {
+		return "", "", err
+	}
+
+	return e1, e2, nil
 }
 
 func NewExprParser(eh ExprHandler) *ExprParser {

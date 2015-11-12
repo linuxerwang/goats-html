@@ -5,15 +5,16 @@ import (
 	"io"
 	"strings"
 
+	"github.com/linuxerwang/goats-html/symbolmgr"
 	"github.com/linuxerwang/goats-html/util"
 )
 
 /*
  * There are two different places a go:arg can appear:
  * - A template definition
- *     <div go:template="<template name>" go:arg="<name>: <type> [= expression]"></div>
+ *     <div go:template="<template name>" go:arg="<name>[pb]: <type> [= expression]"></div>
  * - A template call
- *     <div go:call="#<template name>" go:arg="<name>: <expression>"></div>
+ *     <div go:call="#<template name>" go:arg="<name>[pb]: <expression>"></div>
  */
 type Argument struct {
 	Name    string
@@ -21,6 +22,7 @@ type Argument struct {
 	Type    string
 	Val     string
 	Declare string
+	IsPb    bool
 }
 
 func NewArgDef(argDef string) *Argument {
@@ -35,6 +37,15 @@ func NewArgDef(argDef string) *Argument {
 		} else {
 			argType = util.TrimWhiteSpaces(argDef[colon+1:])
 		}
+	}
+
+	isPb := false
+	if i, j := strings.Index(argName, "["), strings.Index(argName, "]"); i > -1 && j > -1 {
+		switch argName[i+1 : j] {
+		case "pb":
+			isPb = true
+		}
+		argName = argName[:i]
 	}
 
 	// Package name.
@@ -52,6 +63,7 @@ func NewArgDef(argDef string) *Argument {
 		Type:    argType,
 		Val:     argVal,
 		Declare: util.ToPublicName(argName) + " " + argType,
+		IsPb:    isPb,
 	}
 }
 
@@ -59,7 +71,7 @@ func NewArgCall(argCall string) *Argument {
 	var argName, argVal string
 	colon := strings.Index(argCall, ":")
 	argName = util.TrimWhiteSpaces(argCall[:colon])
-	argVal = util.ToCamelExpr(util.ToGoString(util.TrimWhiteSpaces(argCall[colon+1:])))
+	argVal = util.TrimWhiteSpaces(argCall[colon+1:])
 
 	return &Argument{
 		Name: argName,
@@ -79,16 +91,40 @@ func ParseArgDefs(argDefs string) []*Argument {
 
 type GoArgProcessor struct {
 	BaseProcessor
-	args []*Argument
+	args  []*Argument
+	where int
 }
 
-func (a *GoArgProcessor) Process(writer io.Writer, context *TagContext) {
+func (a *GoArgProcessor) Process(writer io.Writer, ctx *TagContext) {
+	sm := ctx.symMgr.Peek()
 	for _, arg := range a.args {
-		io.WriteString(writer, fmt.Sprintf("%s := __args.%s\n", arg.Name, util.ToPublicName(arg.Name)))
+		sm[arg.Name] = &symbolmgr.Symbol{
+			Name: arg.Name,
+			Type: symbolmgr.TypeArg,
+			IsPb: arg.IsPb,
+		}
+	}
+
+	switch ctx.OutputFormat {
+	case "go":
+		for _, arg := range a.args {
+			io.WriteString(writer, fmt.Sprintf("%s := __args.%s\n", arg.Name, util.ToPublicName(arg.Name)))
+		}
+	case "closure":
+		for _, arg := range a.args {
+			t := ctx.symMgr.ExpandType(arg.Type)
+
+			if t == arg.Type {
+				io.WriteString(writer, fmt.Sprintf("var %s = __args[\"%s\"];\n", arg.Name, arg.Name))
+			} else {
+				ctx.pkgRefs.RefClosureRequire(t)
+				io.WriteString(writer, fmt.Sprintf("var %s = new %s(__args[\"%s\"]);\n", arg.Name, t, arg.Name))
+			}
+		}
 	}
 
 	if a.next != nil {
-		a.next.Process(writer, context)
+		a.next.Process(writer, ctx)
 	}
 }
 

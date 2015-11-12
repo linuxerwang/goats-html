@@ -12,12 +12,21 @@ type GoIfProcessor struct {
 	conditional string
 }
 
-func (i *GoIfProcessor) Process(writer io.Writer, context *TagContext) {
-	expr := context.RewriteExpression(i.conditional)
-	io.WriteString(writer, fmt.Sprintf("if %s {\n", expr))
+func (i *GoIfProcessor) Process(writer io.Writer, ctx *TagContext) {
+	expr, err := ctx.RewriteExpression(i.conditional)
+	if err != nil {
+		panic(err)
+	}
+
+	switch ctx.OutputFormat {
+	case "go":
+		io.WriteString(writer, fmt.Sprintf("if %s {\n", expr))
+	case "closure":
+		io.WriteString(writer, fmt.Sprintf("if (%s) {\n", expr))
+	}
 
 	if i.next != nil {
-		i.next.Process(writer, context)
+		i.next.Process(writer, ctx)
 	}
 
 	io.WriteString(writer, "}\n")
