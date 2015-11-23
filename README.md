@@ -18,15 +18,16 @@ The specifier "[pb]" should also be added in the go:import and followed by
 the protocol buffer package name, like the following snippet:
 
 ```html
-<html go:import="proto: mycompany.client.proto [pb] frontend.client.proto"
-<div go:template="ProductCard"
-	go:arg="product[pb]: proto.Product"
-	go:var="resellers[pb]: product.resellers">
-	<div>Name:</div>
-	<div go:content="product.name"></div>
-	<div>Price:</div>
-	<div go:content="product.price"></div>
-</div>
+<html go:import="proto: mycompany.client.proto [pb] frontend.client.proto">
+	<div go:template="ProductCard"
+		go:arg="product[pb]: proto.Product"
+		go:var="resellers[pb]: product.resellers">
+		<div>Name:</div>
+		<div go:content="product.name"></div>
+		<div>Price:</div>
+		<div go:content="product.price"></div>
+	</div>
+</html>
 ```
 
 Note that the protocol buffer field names have to remain the same as
@@ -38,6 +39,7 @@ be correctly handled:
 
 ```html
 <div go:if="product.category == proto.Product.Category_Clothes">
+...
 </div>
 ```
 
