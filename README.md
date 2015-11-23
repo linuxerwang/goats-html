@@ -10,12 +10,12 @@ Closure Library](https://developers.google.com/closure/library/).
 Together with this capability, version 0.3 also introduces officially the
 support for [Protocol Buffers](https://developers.google.com/protocol-buffers/).
 And this change breaks the compatibility with version 0.2!!! From version 0.3
-a protocol buffer argument or variable must attach with the "[pb]", otherwise
-goats-html will simply treat it as a normal name and output it verbatim.
+a protocol buffer argument or variable must be followed with a "[pb]",
+otherwise goats-html will simply treat it as a normal name and output it
+verbatim.
 
-To specify that an argument or variable is a protocol buffer, a specifier
-"[pb]" has to be attached to the argument name or variable, like the
-following:
+The specifier "[pb]" should also be added in the go:import and followed by
+the protocol buffer package name, like the following snippet:
 
 ```html
 <html go:import="proto: mycompany.client.proto [pb] frontend.client.proto"
@@ -23,9 +23,9 @@ following:
 	go:arg="product[pb]: proto.Product"
 	go:var="resellers[pb]: product.resellers">
 	<div>Name:</div>
-	<div go:content="product.Name"></div>
+	<div go:content="product.name"></div>
 	<div>Price:</div>
-	<div go:content="product.Price"></div>
+	<div go:content="product.price"></div>
 </div>
 ```
 
