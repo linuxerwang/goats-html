@@ -99,7 +99,7 @@ goats.runtime.filters.cut = function(input, removed) {
  * @param {string} separator The separator.
  * @returns {string} The result.
  */
-goats.runtime.filters.cut = function(input, separator) {
+goats.runtime.filters.join = function(input, separator) {
 	return input.join(separator);
 };
 
@@ -151,7 +151,7 @@ var SPACES = '                                                                  
 /**
  * Generate space string with the given width.
  *
- * @param {number} input The width.
+ * @param {number} width The width.
  * @returns {string} The result.
  */
 goats.runtime.filters.fillSpaces = function(width) {
@@ -185,9 +185,9 @@ goats.runtime.filters.fillSpaces = function(width) {
  * @private
  */
 goats.runtime.filters.just = function(input, width, left) {
-	if input.length < width {
+	if (input.length < width) {
 		var extra = width - input.length;
-		if left {
+		if (left) {
 			input += goats.runtime.filters.fillSpaces(extra);
 		} else {
 			input = goats.runtime.filters.fillSpaces(extra) + input;

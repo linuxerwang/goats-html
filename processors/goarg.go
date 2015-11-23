@@ -73,9 +73,19 @@ func NewArgCall(argCall string) *Argument {
 	argName = util.TrimWhiteSpaces(argCall[:colon])
 	argVal = util.TrimWhiteSpaces(argCall[colon+1:])
 
+	isPb := false
+	if i, j := strings.Index(argName, "["), strings.Index(argName, "]"); i > -1 && j > -1 {
+		switch argName[i+1 : j] {
+		case "pb":
+			isPb = true
+		}
+		argName = argName[:i]
+	}
+
 	return &Argument{
 		Name: argName,
 		Val:  argVal,
+		IsPb: isPb,
 	}
 }
 

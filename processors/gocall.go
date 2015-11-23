@@ -70,7 +70,11 @@ func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
 			case "go":
 				io.WriteString(writer, fmt.Sprintf("__args.%s = %s\n", util.ToPublicName(argDef.Name), expr))
 			case "closure":
-				io.WriteString(writer, fmt.Sprintf("__args[%s] = %s;\n", strconv.Quote(argDef.Name), expr))
+				if argDef.IsPb {
+					io.WriteString(writer, fmt.Sprintf("__args[%s] = %s.getJsonData();\n", strconv.Quote(argDef.Name), expr))
+				} else {
+					io.WriteString(writer, fmt.Sprintf("__args[%s] = %s;\n", strconv.Quote(argDef.Name), expr))
+				}
 			}
 		})
 	}

@@ -170,6 +170,9 @@ func (er *ExprRewriter) processExpr(n ast.Node, needQuote bool) (string, error) 
 				return "", err
 			}
 			er.inPbExpression = s.IsPb
+			if s.Type == symbolmgr.TypeImport {
+				x = s.PkgImpt.PbPkg()
+			}
 		} else {
 			// Not the left-most identifier, keep traversing the AST.
 			x, err = er.processExpr(node.X, needQuote)
