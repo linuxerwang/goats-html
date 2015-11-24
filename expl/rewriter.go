@@ -170,7 +170,7 @@ func (er *ExprRewriter) processExpr(n ast.Node, needQuote bool) (string, error) 
 				return "", err
 			}
 			er.inPbExpression = s.IsPb
-			if s.Type == symbolmgr.TypeImport {
+			if s.Type == symbolmgr.TypeImport && er.outputFormat == "closure" {
 				x = s.PkgImpt.PbPkg()
 			}
 		} else {

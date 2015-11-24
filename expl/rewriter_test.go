@@ -28,7 +28,7 @@ func TestExprRewriterClosure(t *testing.T) {
 		"a.b.c.Category_Static + a.b.c.date_time"
 	expected := "\"text-\"+files.getGroupA().getInputFile().getFileName()[2:5]+" +
 		"goats.runtime.filters.unixdate(files.getGroupA().getInputFile().getFileSize()*-5)+" +
-		"a.b.c.Category_Static+a.getB().getC().getDateTime()"
+		"x.y.a.b.c.Category_Static+x.y.a.getB().getC().getDateTime()"
 	testExprRewriter(t, er, src, expected)
 }
 

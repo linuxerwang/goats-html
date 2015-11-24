@@ -24,6 +24,7 @@ func (i *GoTextProcessor) Process(writer io.Writer, ctx *TagContext) {
 	hasLeadingSpace := util.HasLeadingSpace(i.text)
 	hasTrailingSpace := util.HasTrailingSpace(i.text)
 	text := util.NormalizeText(i.text)
+
 	if text != "" {
 		if hasLeadingSpace {
 			text = " " + text
@@ -42,6 +43,7 @@ func (i *GoTextProcessor) Process(writer io.Writer, ctx *TagContext) {
 			io.WriteString(writer, fmt.Sprintf("goog.dom.appendChild(__tag_stack[__tag_stack.length-1], __text_node);\n"))
 		}
 	}
+
 	// go text is a terminal processor.
 }
 

@@ -39,7 +39,7 @@ func TestCaseProcessorClosure(t *testing.T) {
 	if !dummy.Called {
 		t.Errorf("Expect calling the dummy processor but was not called.")
 	}
-	if result.String() != "case proto1.book.Category_History:\nDUMMY\nbreak;\n" {
+	if result.String() != "case a.b.proto.book.Category_History:\nDUMMY\nbreak;\n" {
 		t.Errorf("Expected block was not found. ", result.String())
 	}
 }

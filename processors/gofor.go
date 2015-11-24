@@ -93,7 +93,7 @@ func (f *GoForProcessor) Process(writer io.Writer, ctx *TagContext) {
 		s := &symbolmgr.Symbol{
 			Name: loopVarName,
 			Type: symbolmgr.TypeFor,
-			IsPb: false, // loop var is always false
+			IsPb: false, // loop var is always not PB.
 		}
 		sm[loopVarName] = s
 	}

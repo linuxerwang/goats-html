@@ -477,122 +477,126 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, n
 			preProcessor.SetNext(processor)
 			preProcessor = processor
 		}
-	} else if node.Type == html.TextNode {
+		return
+	}
+
+	if node.Type == html.TextNode {
 		processor := processors.NewTextProcessor(node.Data)
 		preProcessor.SetNext(processor)
 		preProcessor = processor
-	} else if node.Type == html.ElementNode {
-
-		goAttrs := t.getAttrMap(node)
-
-		if val, ok := goAttrs["go:var"]; ok {
-			varProcessor := processors.NewVarsProcessor(val)
-			preProcessor.SetNext(varProcessor)
-			preProcessor = varProcessor
-		}
-
-		if val, ok := goAttrs["go:if"]; ok {
-			ifProcessor := processors.NewIfProcessor(val)
-			preProcessor.SetNext(ifProcessor)
-			preProcessor = ifProcessor
-		}
-
-		if val, ok := goAttrs["go:for"]; ok {
-			forProcessor := processors.NewForProcessor(val)
-			preProcessor.SetNext(forProcessor)
-			preProcessor = forProcessor
-		}
-
-		if val, ok := goAttrs["go:settings"]; ok {
-			settingsProcessor := processors.NewSettingsProcessor(val)
-			preProcessor.SetNext(settingsProcessor)
-			preProcessor = settingsProcessor
-		}
-
-		if val, ok := goAttrs["go:case"]; ok {
-			caseProcessor := processors.NewCaseProcessor(val)
-			preProcessor.SetNext(caseProcessor)
-			preProcessor = caseProcessor
-		} else if _, ok := goAttrs["go:default"]; ok {
-			defaultProcessor := processors.NewDefaultProcessor()
-			preProcessor.SetNext(defaultProcessor)
-			preProcessor = defaultProcessor
-		}
-
-		if _, ok := goAttrs["go:switch"]; ok {
-			// Tag with go:switch can only contain sub tags with go:case and/or go:default.
-			for c := node.FirstChild; c != nil; c = c.NextSibling {
-				if c.Type == html.ElementNode {
-					attrs := t.getAttrMap(c)
-					_, hasCase := attrs["go:case"]
-					_, hasDefault := attrs["go:default"]
-					if !hasCase && !hasDefault {
-						log.Fatal(
-							"Tag with go:switch can only contain sub tags with go:case and/or go:default.")
-					}
-
-					t.handleTag(preProcessor, node, TagProcessingGoSwitch)
-				}
-			}
-			return
-		}
-
-		if val, ok := goAttrs["go:template"]; ok && node != t.RootNode {
-			// Convert to an in-package template call.
-			callProcessor := processors.NewCallProcessor("", t.ClosurePkgName, val, processors.ParseArgDefs(goAttrs["go:arg"]), nil, node.Attr)
-			preProcessor.SetNext(callProcessor)
-			preProcessor = callProcessor
-			return
-		}
-
-		if val, ok := goAttrs["go:replaceable"]; ok && node != t.RootNode {
-			replaceableProcessor := processors.NewReplaceableProcessor(t.Name, val, processors.ParseArgDefs(goAttrs["go:arg"]))
-			preProcessor.SetNext(replaceableProcessor)
-			preProcessor = replaceableProcessor
-		}
-
-		if val, ok := goAttrs["go:call"]; ok {
-			pkgPath, callName := t.pkgRefs.ParseTmplCall(val)
-
-			var replacements []*processors.Replacement
-			for c := node.FirstChild; c != nil; c = c.NextSibling {
-				if c.Type == html.TextNode {
-					if len(util.TrimWhiteSpaces(c.Data)) != 0 {
-						log.Fatal("Node with go:call can only contain nodes with go:replace or spaces.")
-					}
-					continue
-				}
-
-				var found bool
-				replacement := &processors.Replacement{
-					Args: []*processors.Argument{},
-				}
-				for _, attr := range c.Attr {
-					if attr.Key == "go:replace" {
-						found = true
-						head := processors.NewHeadProcessor()
-						t.buildProcessorChain(head, c)
-						replacement.Name = attr.Val
-						replacement.Head = head
-						replacements = append(replacements, replacement)
-					} else if attr.Key == "go:arg" {
-						replacement.Args = append(replacement.Args, processors.NewArgDef(attr.Val))
-					}
-				}
-				if !found {
-					log.Fatal("Node with go:call can only contain nodes with go:replace.")
-				}
-			}
-
-			callProcessor := processors.NewCallProcessor(
-				pkgPath, t.ClosurePkgName, callName, processors.ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
-			preProcessor.SetNext(callProcessor)
-			preProcessor = callProcessor
-
-			return
-		}
-		t.handleTag(preProcessor, node, TagProcessingGoRegular)
+		return
 	}
+
+	if node.Type != html.ElementNode {
+		panic(fmt.Sprintf("Expect element node but got node type %d", node.Type))
+		return
+	}
+
+	goAttrs := t.getAttrMap(node)
+
+	if val, ok := goAttrs["go:settings"]; ok {
+		settingsProcessor := processors.NewSettingsProcessor(val)
+		preProcessor.SetNext(settingsProcessor)
+		preProcessor = settingsProcessor
+	}
+
+	if val, ok := goAttrs["go:var"]; ok {
+		varProcessor := processors.NewVarsProcessor(val)
+		preProcessor.SetNext(varProcessor)
+		preProcessor = varProcessor
+	}
+
+	if val, ok := goAttrs["go:if"]; ok {
+		ifProcessor := processors.NewIfProcessor(val)
+		preProcessor.SetNext(ifProcessor)
+		preProcessor = ifProcessor
+	} else if val, ok := goAttrs["go:case"]; ok {
+		caseProcessor := processors.NewCaseProcessor(val)
+		preProcessor.SetNext(caseProcessor)
+		preProcessor = caseProcessor
+	} else if _, ok := goAttrs["go:default"]; ok {
+		defaultProcessor := processors.NewDefaultProcessor()
+		preProcessor.SetNext(defaultProcessor)
+		preProcessor = defaultProcessor
+	}
+
+	if val, ok := goAttrs["go:for"]; ok {
+		forProcessor := processors.NewForProcessor(val)
+		preProcessor.SetNext(forProcessor)
+		preProcessor = forProcessor
+	} else if _, ok := goAttrs["go:switch"]; ok {
+		// Tag with go:switch can only contain sub tags with go:case and/or go:default.
+		for c := node.FirstChild; c != nil; c = c.NextSibling {
+			if c.Type == html.ElementNode {
+				attrs := t.getAttrMap(c)
+				_, hasCase := attrs["go:case"]
+				_, hasDefault := attrs["go:default"]
+				if !hasCase && !hasDefault {
+					log.Fatal(
+						"Tag with go:switch can only contain sub tags with go:case and/or go:default.")
+				}
+
+				t.handleTag(preProcessor, node, TagProcessingGoSwitch)
+			}
+		}
+		return
+	}
+
+	if val, ok := goAttrs["go:template"]; ok && node != t.RootNode {
+		// Convert to an in-package template call.
+		callProcessor := processors.NewCallProcessor("", t.ClosurePkgName, val, processors.ParseArgDefs(goAttrs["go:arg"]), nil, node.Attr)
+		preProcessor.SetNext(callProcessor)
+		preProcessor = callProcessor
+		return
+	}
+
+	if val, ok := goAttrs["go:replaceable"]; ok && node != t.RootNode {
+		replaceableProcessor := processors.NewReplaceableProcessor(t.Name, val, processors.ParseArgDefs(goAttrs["go:arg"]))
+		preProcessor.SetNext(replaceableProcessor)
+		preProcessor = replaceableProcessor
+	}
+
+	if val, ok := goAttrs["go:call"]; ok {
+		pkgPath, callName := t.pkgRefs.ParseTmplCall(val)
+
+		var replacements []*processors.Replacement
+		for c := node.FirstChild; c != nil; c = c.NextSibling {
+			if c.Type == html.TextNode {
+				if len(util.TrimWhiteSpaces(c.Data)) != 0 {
+					log.Fatal("Node with go:call can only contain nodes with go:replace or spaces.")
+				}
+				continue
+			}
+
+			var found bool
+			replacement := &processors.Replacement{
+				Args: []*processors.Argument{},
+			}
+			for _, attr := range c.Attr {
+				if attr.Key == "go:replace" {
+					found = true
+					head := processors.NewHeadProcessor()
+					t.buildProcessorChain(head, c)
+					replacement.Name = attr.Val
+					replacement.Head = head
+					replacements = append(replacements, replacement)
+				} else if attr.Key == "go:arg" {
+					replacement.Args = append(replacement.Args, processors.NewArgDef(attr.Val))
+				}
+			}
+			if !found {
+				log.Fatal("Node with go:call can only contain nodes with go:replace.")
+			}
+		}
+
+		callProcessor := processors.NewCallProcessor(
+			pkgPath, t.ClosurePkgName, callName, processors.ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
+		preProcessor.SetNext(callProcessor)
+		preProcessor = callProcessor
+
+		return
+	}
+	t.handleTag(preProcessor, node, TagProcessingGoRegular)
 }
 
 func (t *GoatsTemplate) handleTag(preProcessor processors.Processor, node *html.Node, tagProcessingType int) {

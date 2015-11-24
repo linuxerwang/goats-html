@@ -287,18 +287,13 @@ func (t *GoTagProcessor) processChildrenTags(writer io.Writer, ctx *TagContext) 
 		ctx.AutoEscape = false
 	}
 
-	head := NewHeadProcessor()
 	if t.next != nil {
-		head.SetNext(t.next)
+		t.next.Process(writer, ctx)
 	}
-	tail := t.getTail(head)
-	callback := NewCallbackProcessor(func() {
-		for _, child := range t.childProcessors {
-			child.Process(writer, ctx)
-		}
-	})
-	tail.SetNext(callback)
-	head.Process(writer, ctx)
+
+	for _, child := range t.childProcessors {
+		child.Process(writer, ctx)
+	}
 
 	ctx.AutoEscape = originalAutoEscape
 }
