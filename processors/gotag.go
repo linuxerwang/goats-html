@@ -67,7 +67,12 @@ func (t *GoTagProcessor) Process(writer io.Writer, ctx *TagContext) {
 	}
 
 	// Start local scope.
-	io.WriteString(writer, "{\n")
+	switch ctx.OutputFormat {
+	case "go":
+		io.WriteString(writer, "{\n")
+	case "closure":
+		io.WriteString(writer, "(function(){\n")
+	}
 
 	switch ctx.OutputFormat {
 	case "closure":
@@ -101,7 +106,12 @@ func (t *GoTagProcessor) Process(writer io.Writer, ctx *TagContext) {
 	t.maybeCloseTag(writer, ctx)
 
 	// End local scope.
-	io.WriteString(writer, "}\n")
+	switch ctx.OutputFormat {
+	case "go":
+		io.WriteString(writer, "}\n")
+	case "closure":
+		io.WriteString(writer, "})();\n")
+	}
 
 	ctx.AutoEscape = originalAutoEscape
 }
@@ -162,7 +172,7 @@ func (t *GoTagProcessor) processFirstTag(writer io.Writer, ctx *TagContext) {
 		io.WriteString(writer, "  }\n")
 		io.WriteString(writer, "}\n")
 		io.WriteString(writer, "if (!__omitTag) {\n")
-		io.WriteString(writer, fmt.Sprintf("  __element = goog.dom.createDom(\"%s\", __attrs);\n", t.tagName))
+		io.WriteString(writer, fmt.Sprintf("  __element = goog.dom.createDom(\"%s\", __attrs.get());\n", t.tagName))
 		io.WriteString(writer, "}\n")
 	}
 }
@@ -200,7 +210,7 @@ func (t *GoTagProcessor) processSubseqTag(writer io.Writer, ctx *TagContext) {
 				io.WriteString(writer, fmt.Sprintf("  __attrs.GenTagAndAttrs(__impl.GetWriter(), \"%s\")\n", t.tagName))
 			case "closure":
 				t.genLocalAttrs(writer, ctx)
-				io.WriteString(writer, fmt.Sprintf("__element = goog.dom.createDom(\"%s\", __attrs);\n", t.tagName))
+				io.WriteString(writer, fmt.Sprintf("__element = goog.dom.createDom(\"%s\", __attrs.get());\n", t.tagName))
 			}
 		}
 	default:
@@ -220,7 +230,7 @@ func (t *GoTagProcessor) processSubseqTag(writer io.Writer, ctx *TagContext) {
 			io.WriteString(writer, fmt.Sprintf("if (!%s) {\n", t.omitTag))
 			io.WriteString(writer, "var __omitTag = false;\n")
 			io.WriteString(writer, "  var __attrs = {};\n")
-			io.WriteString(writer, fmt.Sprintf("__element = goog.dom.createDom(\"%s\", __attrs);\n", t.tagName))
+			io.WriteString(writer, fmt.Sprintf("__element = goog.dom.createDom(\"%s\", __attrs.get());\n", t.tagName))
 			t.genLocalAttrs(writer, ctx)
 			t.genConditionalTag(writer, ctx)
 			io.WriteString(writer, "} else {\n")
@@ -241,7 +251,7 @@ func (t *GoTagProcessor) genConditionalTag(writer io.Writer, ctx *TagContext) {
 	case "closure":
 		io.WriteString(writer, fmt.Sprintf("__omitTag = %s;\n", t.omitTag))
 		io.WriteString(writer, "if (!__omitTag) {\n")
-		io.WriteString(writer, fmt.Sprintf("  __element = goog.dom.createDom(\"%s\", __attrs);\n", t.tagName))
+		io.WriteString(writer, fmt.Sprintf("  __element = goog.dom.createDom(\"%s\", __attrs.get());\n", t.tagName))
 		io.WriteString(writer, "}\n")
 	}
 }
