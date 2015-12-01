@@ -81,7 +81,7 @@ type PkgRefs struct {
 	closureRequires map[string]bool // set of closure require targets.
 }
 
-func (pr *PkgRefs) ParseTmplCall(callStmt string) (pkgPath, callName string) {
+func (pr *PkgRefs) ParseTmplCall(callStmt string) (pkgPath, relPkgPath, callName string) {
 	return pr.pkgMgr.ParseTmplCall(callStmt)
 }
 
@@ -170,7 +170,7 @@ func (pm *PkgManager) AddImport(alias, pkgPath string, pbPkg string) *PkgImport 
 	return pi
 }
 
-func (pm *PkgManager) ParseTmplCall(callStmt string) (pkgPath, callName string) {
+func (pm *PkgManager) ParseTmplCall(callStmt string) (pkgPath, relPkgPath, callName string) {
 	callStmt = util.TrimWhiteSpaces(callStmt)
 
 	if !strings.Contains(callStmt, "#") {
@@ -181,16 +181,16 @@ func (pm *PkgManager) ParseTmplCall(callStmt string) (pkgPath, callName string) 
 
 	if strings.HasPrefix(callStmt, "#") {
 		// In-file call.
-		return "", parts[1]
+		return "", "", parts[1]
 	}
 
 	pkgPath = strings.Replace(parts[0], ".html", "_html", -1)
 
 	if strings.HasPrefix(pkgPath, "/") {
 		// Absolute reference
-		return pkgPath[1:], parts[1]
+		return pkgPath[1:], pkgPath[1+len(pm.tmplPkg):], parts[1]
 	} else {
-		return path.Join(pm.tmplPkg, pkgPath), parts[1]
+		return path.Join(pm.tmplPkg, pkgPath), pkgPath, parts[1]
 	}
 }
 

@@ -544,7 +544,7 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, n
 
 	if val, ok := goAttrs["go:template"]; ok && node != t.RootNode {
 		// Convert to an in-package template call.
-		callProcessor := processors.NewCallProcessor("", t.ClosurePkgName, val, processors.ParseArgDefs(goAttrs["go:arg"]), nil, node.Attr)
+		callProcessor := processors.NewCallProcessor("", "", t.Parser.Settings.OutputPkgPrefix, t.ClosurePkgName, val, processors.ParseArgDefs(goAttrs["go:arg"]), nil, node.Attr)
 		preProcessor.SetNext(callProcessor)
 		preProcessor = callProcessor
 		return
@@ -557,7 +557,7 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, n
 	}
 
 	if val, ok := goAttrs["go:call"]; ok {
-		pkgPath, callName := t.pkgRefs.ParseTmplCall(val)
+		pkgPath, relPkgPath, callName := t.pkgRefs.ParseTmplCall(val)
 
 		var replacements []*processors.Replacement
 		for c := node.FirstChild; c != nil; c = c.NextSibling {
@@ -590,7 +590,7 @@ func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, n
 		}
 
 		callProcessor := processors.NewCallProcessor(
-			pkgPath, t.ClosurePkgName, callName, processors.ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
+			pkgPath, relPkgPath, t.Parser.Settings.OutputPkgPrefix, t.ClosurePkgName, callName, processors.ParseArgCalls(goAttrs["go:arg"]), replacements, node.Attr)
 		preProcessor.SetNext(callProcessor)
 		preProcessor = callProcessor
 

@@ -19,12 +19,14 @@ type Replacement struct {
 
 type GoCallProcessor struct {
 	BaseProcessor
-	pkgPath        string
-	templateName   string
-	closurePkgName string
-	args           []*Argument
-	replacements   []*Replacement
-	callerAttrs    []html.Attribute
+	pkgPath          string
+	relPkgPath       string
+	closurePkgPrefix string
+	templateName     string
+	closurePkgName   string
+	args             []*Argument
+	replacements     []*Replacement
+	callerAttrs      []html.Attribute
 }
 
 func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
@@ -49,7 +51,7 @@ func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
 			argType = fmt.Sprintf("%s.%sTemplateArgs", pi.Alias(), c.templateName)
 			newTemplateName = fmt.Sprintf("%s.New%sTemplate", pi.Alias(), c.templateName)
 		case "closure":
-			require := fmt.Sprintf("%s.%sTemplate", c.pkgPath, c.templateName)
+			require := fmt.Sprintf("%s.%s.%sTemplate", c.closurePkgPrefix, c.relPkgPath, c.templateName)
 			ctx.pkgRefs.RefClosureRequire(require)
 			newTemplateName = require
 		}
@@ -191,15 +193,17 @@ func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
 	// go:call is a terminal processor.
 }
 
-func NewCallProcessor(pkgPath, closurePkgName, templateName string, args []*Argument,
+func NewCallProcessor(pkgPath, relPkgPath, closurePkgPrefix, closurePkgName, templateName string, args []*Argument,
 	replacements []*Replacement, callerAttrs []html.Attribute) *GoCallProcessor {
 	processor := &GoCallProcessor{
-		pkgPath:        pkgPath,
-		closurePkgName: closurePkgName,
-		templateName:   templateName,
-		args:           args,
-		replacements:   replacements,
-		callerAttrs:    callerAttrs,
+		pkgPath:          pkgPath,
+		relPkgPath:       relPkgPath,
+		closurePkgPrefix: closurePkgPrefix,
+		closurePkgName:   closurePkgName,
+		templateName:     templateName,
+		args:             args,
+		replacements:     replacements,
+		callerAttrs:      callerAttrs,
 	}
 	return processor
 }

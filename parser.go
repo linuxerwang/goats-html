@@ -88,7 +88,7 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 				if node.Data == "html" {
 					panic("Attr go:call is not allowed on <html> tag.")
 				}
-				pkgPath, _ := p.PkgMgr.ParseTmplCall(attr.Val)
+				pkgPath, _, _ := p.PkgMgr.ParseTmplCall(attr.Val)
 				// TODO: handle pb variation.
 				p.PkgMgr.AddImport("", pkgPath, "")
 				break
