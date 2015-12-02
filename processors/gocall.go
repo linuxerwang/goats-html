@@ -184,7 +184,7 @@ func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
 	case "go":
 		io.WriteString(writer, "__tplt.Render(__element, __args);\n")
 	case "closure":
-		io.WriteString(writer, "__tplt.render(__element, __args);\n")
+		io.WriteString(writer, "__tplt.render(__tag_stack[__tag_stack.length-1], __args);\n")
 	}
 
 	// Start of local scope.

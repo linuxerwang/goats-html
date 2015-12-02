@@ -137,10 +137,12 @@ func (f *GoForProcessor) Process(writer io.Writer, ctx *TagContext) {
 			io.WriteString(writer,
 				fmt.Sprintf("var %s = {\n"+
 					"total: __loopTotal,\n"+
+					"counter: 0,\n"+
 					"counter0: -1,\n"+
 					"revCounter: __loopTotal + 1,\n"+
 					"revCounter0: __loopTotal,\n"+
-					"first: __loopTotal > 1\n"+
+					"first: __loopTotal > 1,\n"+
+					"last: false\n"+
 					"};\n", loopVarName))
 		}
 

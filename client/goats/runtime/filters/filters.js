@@ -2,6 +2,7 @@ goog.provide('goats.runtime.filters');
 
 goog.require('goog.object');
 goog.require('goog.string');
+goog.require('goog.string.format');
 
 
 /**
@@ -135,7 +136,8 @@ goats.runtime.filters.quote = function(input) {
  * @returns {string} The result.
  */
 goats.runtime.filters.format = function(f, var_args) {
-	return goog.string.format(f, var_args);
+	var args = Array.prototype.slice.call(arguments);
+	return goog.string.format.apply(null, args);
 };
 
 
