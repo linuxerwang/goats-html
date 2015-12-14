@@ -112,8 +112,8 @@ goog.require('goog.dom');
  * The {{$tmplName}} template for packge {{.ClosurePkgName}}.
  *
  * @constructor
- * @export
- */
+{{if .OutputExport}} * @export
+{{end}} */
 {{.ClosurePkgName}}.{{$tmplName}}Template = function() {
 	/**
 	 * The caller attrs function.
@@ -127,8 +127,8 @@ goog.require('goog.dom');
  *
  * @param {Element} __parent The parent element.
  * @param {Object} __args The template arguments.
- * @export
- */
+{{if .OutputExport}} * @export
+{{end}} */
 {{.ClosurePkgName}}.{{$tmplName}}Template.prototype.render = function(__parent, __args) {
 	var __tag_stack = [];
 	if (__parent) {
@@ -292,6 +292,7 @@ type GoatsTemplate struct {
 	OutputIfaceFile string
 	OutputImplFile  string
 	OutputProxyFile string
+	OutputExport    bool
 	Pkg             string
 	PkgName         string
 	ClosurePkgName  string
@@ -318,6 +319,7 @@ func NewGoatsTemplate(parser *GoatsParser, tmplName string, args []*processors.A
 		OutputIfaceFile: fmt.Sprintf("%s.go", prefix),
 		OutputImplFile:  fmt.Sprintf("%s%s", prefix, suffix),
 		OutputProxyFile: fmt.Sprintf("%s%s", prefix, ProxyFileSuffix),
+		OutputExport:    parser.Settings.OutputExport,
 		Pkg:             parser.Pkg,
 		PkgName:         filepath.Base(parser.Pkg),
 		Name:            tmplName,

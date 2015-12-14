@@ -24,6 +24,7 @@ type ParserSettings struct {
 	OutputDir       string
 	OutputFormat    string
 	OutputPkgPrefix string
+	OutputExport    bool
 	Clean           bool
 	KeepComments    bool
 	SampleData      bool

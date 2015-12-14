@@ -27,6 +27,8 @@ var (
 		"output-format", "go", "Output format, can be go (default) or closure.")
 	genOutputPkgPrefix = genCmd.Flag.String(
 		"output-pkg-prefix", "", "Output package, used for output format closure.")
+	genOutputExport = genCmd.Flag.Bool(
+		"output-export", true, "Output closure export, used for output format closure.")
 	genClean        = genCmd.Flag.Bool("clean", true, "Clean unexisting *_html directories.")
 	genKeepComments = genCmd.Flag.Bool("keep_comments", false, "Keep comment in output HTML.")
 	genSampleData   = genCmd.Flag.Bool("sample_data", false, "Keep comment in output HTML.")
@@ -58,6 +60,7 @@ func runGen(cmd *Command, args []string) {
 		OutputDir:       *genOutputDir,
 		OutputFormat:    *genOutputFormat,
 		OutputPkgPrefix: *genOutputPkgPrefix,
+		OutputExport:    *genOutputExport,
 		Clean:           *genClean,
 		KeepComments:    *genKeepComments,
 		SampleData:      *genSampleData,
