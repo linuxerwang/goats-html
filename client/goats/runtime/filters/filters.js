@@ -45,7 +45,7 @@ goats.runtime.filters.title = function(input) {
  * Centers the input string with the given width.
  *
  * @param {string} input The input.
- * @param {number} input The width.
+ * @param {number} width The width.
  * @returns {string} The result.
  */
 goats.runtime.filters.center = function(input, width) {
@@ -64,7 +64,7 @@ goats.runtime.filters.center = function(input, width) {
  * Justifies the string to the left.
  *
  * @param {string} input The input.
- * @param {number} input The width.
+ * @param {number} width The width.
  * @returns {string} The result.
  */
 goats.runtime.filters.ljust = function(input, width) {
@@ -75,7 +75,7 @@ goats.runtime.filters.ljust = function(input, width) {
  * Justifies the string to the right.
  *
  * @param {string} input The input.
- * @param {number} input The width.
+ * @param {number} width The width.
  * @returns {string} The result.
  */
 goats.runtime.filters.rjust = function(input, width) {
@@ -165,7 +165,7 @@ goats.runtime.filters.fillSpaces = function(width) {
 
 	var n = width / SPACES.length;
 	var r = width % SPACES.length;
-	s = "";
+	var s = "";
 	for (var i = 0; i < n; i++) {
 		// It's not optimal in complexity, but in practice it's very rare
 		// to have to create such a long empty string.
@@ -181,7 +181,7 @@ goats.runtime.filters.fillSpaces = function(width) {
  * Justifies the string to left or right.
  *
  * @param {string} input The input.
- * @param {number} input The width.
+ * @param {number} width The width.
  * @param {boolean} left Whether justify to left.
  * @returns {string} The result.
  * @private
