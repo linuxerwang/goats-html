@@ -29,7 +29,7 @@ type SelectorInstance struct {
 }
 
 type TagContext struct {
-	ContextId    int
+	nextId       int
 	ExprParser   *expl.ExprParser
 	pkgMgr       *pkgmgr.PkgManager
 	pkgRefs      pkgmgr.AliasReferer
@@ -41,6 +41,11 @@ type TagContext struct {
 
 func (ctx *TagContext) GetFilters() map[string]*RegisteredFilter {
 	return ctx.fitlers
+}
+
+func (ctx *TagContext) NextId() int {
+	ctx.nextId++
+	return ctx.nextId
 }
 
 func (ctx *TagContext) MaybeAddImports(expression string) {
@@ -71,11 +76,9 @@ func (ctx *TagContext) RewriteExpression(originalExpr string) (string, error) {
 	return er.RewriteExpression(originalExpr)
 }
 
-var tagCount int = 0
-
 func NewTagContext(pkgMgr *pkgmgr.PkgManager, pkgRefs pkgmgr.AliasReferer, outputFormat string) *TagContext {
 	ctx := &TagContext{
-		ContextId:    tagCount,
+		nextId:       0,
 		pkgMgr:       pkgMgr,
 		pkgRefs:      pkgRefs,
 		symMgr:       symbolmgr.New(),
@@ -83,7 +86,6 @@ func NewTagContext(pkgMgr *pkgmgr.PkgManager, pkgRefs pkgmgr.AliasReferer, outpu
 		AutoEscape:   true,
 		OutputFormat: outputFormat,
 	}
-	tagCount++
 
 	sm := make(map[string]*symbolmgr.Symbol)
 	if ctx.symMgr.Size() == 0 {

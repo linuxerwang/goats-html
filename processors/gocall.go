@@ -82,11 +82,12 @@ func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
 	}
 
 	// Call template.
+	id := ctx.NextId()
 	switch ctx.OutputFormat {
 	case "go":
 		io.WriteString(writer, fmt.Sprintf("__tplt := %s(__impl.GetWriter(), __impl.GetSettings())\n", newTemplateName))
 	case "closure":
-		io.WriteString(writer, fmt.Sprintf("__tplt = new %s();\n", newTemplateName))
+		io.WriteString(writer, fmt.Sprintf("var __tplt_%d = new %s();\n", id, newTemplateName))
 	}
 	// Caller Attributes.
 	if c.callerAttrs != nil {
@@ -118,7 +119,7 @@ func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
 			io.WriteString(writer, "return __callerAttrs, __hasOmitTag, __omitTag\n")
 			io.WriteString(writer, "})\n")
 		case "closure":
-			io.WriteString(writer, "__tplt.setCallerAttrsFunc(function() {\n")
+			io.WriteString(writer, fmt.Sprintf("__tplt_%d.setCallerAttrsFunc(function() {\n", id))
 			io.WriteString(writer, "var __callerAttrs = {};\n")
 			io.WriteString(writer, "var __hasOmitTag = false;")
 			io.WriteString(writer, "var __omitTag = false;\n")
@@ -151,11 +152,10 @@ func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
 			argType := fmt.Sprintf("%s%sReplArgs", c.templateName, replacement.Name)
 			if c.pkgPath == "" {
 				io.WriteString(writer,
-					fmt.Sprintf("  __tplt.Replace%s(func(__args *%s) {\n", replacement.Name, argType))
+					fmt.Sprintf("  __tplt_%d.Replace%s(func(__args *%s) {\n", id, replacement.Name, argType))
 			} else {
 				io.WriteString(writer,
-					fmt.Sprintf("  __tplt.Replace%s(func(__args *%s.%s) {\n",
-						replacement.Name, pi.Alias(), argType))
+					fmt.Sprintf("  __tplt_%d.Replace%s(func(__args *%s.%s) {\n", id, replacement.Name, pi.Alias(), argType))
 			}
 
 			for _, arg := range replacement.Args {
@@ -166,9 +166,9 @@ func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
 			io.WriteString(writer, "})\n")
 		case "closure":
 			if c.pkgPath == "" {
-				io.WriteString(writer, fmt.Sprintf("  __tplt.replace%s(func(__args) {\n", replacement.Name))
+				io.WriteString(writer, fmt.Sprintf("  __tplt_%d.replace%s(func(__args) {\n", id, replacement.Name))
 			} else {
-				io.WriteString(writer, fmt.Sprintf("  __tplt.replace%s(func(__args) {\n", replacement.Name))
+				io.WriteString(writer, fmt.Sprintf("  __tpltt_%d.replace%s(func(__args) {\n", id, replacement.Name))
 			}
 
 			for _, arg := range replacement.Args {
@@ -184,7 +184,7 @@ func (c *GoCallProcessor) Process(writer io.Writer, ctx *TagContext) {
 	case "go":
 		io.WriteString(writer, "__tplt.Render(__element, __args);\n")
 	case "closure":
-		io.WriteString(writer, "__tplt.render(__tag_stack[__tag_stack.length-1], __args);\n")
+		io.WriteString(writer, fmt.Sprintf("__tplt_%d.render(__tag_stack[__tag_stack.length-1], __args);\n", id))
 	}
 
 	// Start of local scope.

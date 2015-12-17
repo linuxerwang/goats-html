@@ -39,8 +39,9 @@ func (i *GoTextProcessor) Process(writer io.Writer, ctx *TagContext) {
 		case "go":
 			io.WriteString(writer, fmt.Sprintf("__impl.WriteString(\"%s\")\n", text))
 		case "closure":
-			io.WriteString(writer, fmt.Sprintf("var __text_node = goog.dom.createTextNode(\"%s\");\n", text))
-			io.WriteString(writer, fmt.Sprintf("goog.dom.appendChild(__tag_stack[__tag_stack.length-1], __text_node);\n"))
+			id := ctx.NextId()
+			io.WriteString(writer, fmt.Sprintf("var __text_node_%d = goog.dom.createTextNode(\"%s\");\n", id, text))
+			io.WriteString(writer, fmt.Sprintf("goog.dom.appendChild(__tag_stack[__tag_stack.length-1], __text_node_%d);\n", id))
 		}
 	}
 
