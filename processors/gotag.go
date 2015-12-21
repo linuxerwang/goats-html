@@ -172,6 +172,10 @@ func (t *GoTagProcessor) processFirstTag(writer io.Writer, ctx *TagContext) {
 		}
 		io.WriteString(writer, "    }\n")
 		io.WriteString(writer, "  }\n")
+		io.WriteString(writer, "} else {\n")
+		if t.hasOmitTag {
+			io.WriteString(writer, fmt.Sprintf("  __omitTag = %s;\n", t.omitTag))
+		}
 		io.WriteString(writer, "}\n")
 		io.WriteString(writer, "if (!__omitTag) {\n")
 		io.WriteString(writer, fmt.Sprintf("  __element = goog.dom.createDom(\"%s\", __attrs.get());\n", t.tagName))
