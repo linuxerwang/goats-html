@@ -32,6 +32,11 @@ goats.runtime.filters.length = function(input) {
 };
 
 /**
+ * An alias of length().
+ */
+goats.runtime.filters.len = goats.runtime.filters.length;
+
+/**
  * Converts the input to a title (capitalize the frist letter of each word).
  *
  * @param {string} input The input.

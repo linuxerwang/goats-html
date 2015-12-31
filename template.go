@@ -135,6 +135,8 @@ goog.require('goog.dom');
 		__tag_stack.push(__parent);
 	}
 
+	var __self = this;
+
 @@RENDER@@
 };
 

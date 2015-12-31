@@ -18,7 +18,7 @@ func (s *GoSettingsProcessor) Process(writer io.Writer, ctx *TagContext) {
 	case "go":
 		io.WriteString(writer, fmt.Sprintf("%s := %s\n", s.Name, "__impl.GetSettings()"))
 	case "closure":
-		io.WriteString(writer, fmt.Sprintf("var %s = %s;\n", s.Name, "this.__getSettings()"))
+		io.WriteString(writer, fmt.Sprintf("var %s = %s;\n", s.Name, "__self.__getSettings()"))
 	}
 
 	if s.next != nil {

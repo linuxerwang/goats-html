@@ -174,25 +174,3 @@ type RegisteredFilter struct {
 	Type    string
 	VarName string
 }
-
-var builtinFilter = &RegisteredFilter{
-	PkgName: "goats-html/goats/runtime",
-	Type:    "BuiltinFilter",
-	VarName: "builtinFilter",
-}
-
-var RegisteredFilters = map[string]*RegisteredFilter{
-	"capfirst":     builtinFilter,
-	"center":       builtinFilter,
-	"cut":          builtinFilter,
-	"debug":        builtinFilter,
-	"floatformat":  builtinFilter,
-	"format":       builtinFilter,
-	"join":         builtinFilter,
-	"ljust":        builtinFilter,
-	"rjust":        builtinFilter,
-	"title":        builtinFilter,
-	"quote":        builtinFilter,
-	"unixdate":     builtinFilter,
-	"unixnanodate": builtinFilter,
-}

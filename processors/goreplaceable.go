@@ -36,7 +36,7 @@ func (r *GoReplaceableProcessor) Process(writer io.Writer, ctx *TagContext) {
 		io.WriteString(writer, fmt.Sprintf("  __impl.%s(args)\n", r.hiddenName))
 		io.WriteString(writer, "}\n")
 	case "closure":
-		io.WriteString(writer, fmt.Sprintf("if (this.%s_ == null) {\n", r.hiddenName))
+		io.WriteString(writer, fmt.Sprintf("if (__self.%s_ == null) {\n", r.hiddenName))
 		for _, arg := range r.args {
 			io.WriteString(writer, fmt.Sprintf("  var %s = %s;\n", arg.Name, arg.Val))
 		}
@@ -50,7 +50,7 @@ func (r *GoReplaceableProcessor) Process(writer io.Writer, ctx *TagContext) {
 		for _, arg := range r.args {
 			io.WriteString(writer, fmt.Sprintf("__args.%s = %s;\n", util.ToPublicName(arg.Name), arg.Val))
 		}
-		io.WriteString(writer, fmt.Sprintf("  this.%s_(__element, __args);\n", r.hiddenName))
+		io.WriteString(writer, fmt.Sprintf("  __self.%s_(__element, __args);\n", r.hiddenName))
 		io.WriteString(writer, "}\n")
 	}
 }

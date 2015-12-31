@@ -158,8 +158,8 @@ func (t *GoTagProcessor) processFirstTag(writer io.Writer, ctx *TagContext) {
 		// Local attributes
 		t.genLocalAttrs(writer, ctx)
 		// Caller attributes may overwrite local attrs.
-		io.WriteString(writer, "if (this.callerAttrsFunc_) {\n")
-		io.WriteString(writer, "  var __callerAttrs = this.callerAttrsFunc_();\n")
+		io.WriteString(writer, "if (__self.callerAttrsFunc_) {\n")
+		io.WriteString(writer, "  var __callerAttrs = __self.callerAttrsFunc_();\n")
 		io.WriteString(writer, "  if (__callerAttrs) {\n")
 		io.WriteString(writer, "    __attrs.mergeFrom(__callerAttrs.attrs);\n")
 		io.WriteString(writer, "    if (__callerAttrs.hasOmitTag) {\n")
