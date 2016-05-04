@@ -26,7 +26,7 @@ var (
 	genOutputFormat = genCmd.Flag.String(
 		"output-format", "go", "Output format, can be go (default) or closure.")
 	genOutputPkgPrefix = genCmd.Flag.String(
-		"output-pkg-prefix", "", "Output package, used for output format closure.")
+		"output-pkg-prefix", "", "Output package prefix.")
 	genOutputExport = genCmd.Flag.Bool(
 		"output-export", true, "Output closure export, used for output format closure.")
 	genClean        = genCmd.Flag.Bool("clean", true, "Clean unexisting *_html directories.")

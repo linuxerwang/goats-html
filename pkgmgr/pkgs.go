@@ -125,10 +125,11 @@ func (pr *PkgRefs) GenerateRequires(buffer *bytes.Buffer) {
 
 // PackageManager maintains all package imports in a template file.
 type PkgManager struct {
-	aliasId      int
-	tmplPkg      string
-	pkgsForPath  map[string]*PkgImport // maps from package path to PkgImport
-	pkgsForAlias map[string]*PkgImport // maps from package alias to PkgImport
+	aliasId         int
+	tmplPkg         string
+	outputPkgPrefix string
+	pkgsForPath     map[string]*PkgImport // maps from package path to PkgImport
+	pkgsForAlias    map[string]*PkgImport // maps from package alias to PkgImport
 }
 
 func (pm *PkgManager) AddImport(alias, pkgPath string, pbPkg string) *PkgImport {
@@ -188,9 +189,9 @@ func (pm *PkgManager) ParseTmplCall(callStmt string) (pkgPath, relPkgPath, callN
 
 	if strings.HasPrefix(pkgPath, "/") {
 		// Absolute reference
-		return pkgPath[1:], pkgPath[1+len(pm.tmplPkg):], parts[1]
+		return path.Join(pm.outputPkgPrefix, pkgPath[1:]), pkgPath[1+len(pm.tmplPkg):], parts[1]
 	} else {
-		return path.Join(pm.tmplPkg, pkgPath), pkgPath, parts[1]
+		return path.Join(pm.outputPkgPrefix, pm.tmplPkg, pkgPath), pkgPath, parts[1]
 	}
 }
 
@@ -221,11 +222,12 @@ func (pm *PkgManager) CreatePkgRefs() *PkgRefs {
 	}
 }
 
-func New(tmplPkg string) *PkgManager {
+func New(tmplPkg, outputPkgPrefix string) *PkgManager {
 	return &PkgManager{
-		aliasId:      0,
-		tmplPkg:      tmplPkg,
-		pkgsForPath:  map[string]*PkgImport{},
-		pkgsForAlias: map[string]*PkgImport{},
+		aliasId:         0,
+		tmplPkg:         tmplPkg,
+		outputPkgPrefix: outputPkgPrefix,
+		pkgsForPath:     map[string]*PkgImport{},
+		pkgsForAlias:    map[string]*PkgImport{},
 	}
 }

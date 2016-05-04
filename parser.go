@@ -285,9 +285,9 @@ func NewParser(parserSettings *ParserSettings, htmlFilePath string) *GoatsParser
 		log.Fatal("Invalid output path: ", outputPath)
 	}
 
-	pkgMgr := pkgmgr.New(path.Join(parserSettings.OutputDir, prefix))
+	pkgMgr := pkgmgr.New(path.Join(parserSettings.OutputDir, prefix), parserSettings.OutputPkgPrefix)
 
-	pkg := path.Join(parserSettings.OutputDir, prefix, pkgName)
+	pkg := path.Join(parserSettings.OutputPkgPrefix, parserSettings.OutputDir, prefix, pkgName)
 	p := &GoatsParser{
 		Settings:     parserSettings,
 		ModTime:      info.ModTime(),
