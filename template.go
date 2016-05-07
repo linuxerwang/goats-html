@@ -6,7 +6,6 @@ import (
 	"go/format"
 	"io"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 	txttpl "text/template"
@@ -23,14 +22,7 @@ const (
 	TagProcessingGoSwitch
 )
 
-const TemplateInterfaceFile = (`package {{.PkgName}}
-
-import (
-	"github.com/linuxerwang/goats-html/runtime"
-	@@IMPORT@@
-)
-
-type {{.Name}}TemplateArgs struct {
+const tmplIfaceBody = (`type {{.Name}}TemplateArgs struct {
 	{{range .Args}} {{.Declare}}
 {{end}}
 }
@@ -55,19 +47,7 @@ type {{.Name}}Template interface {
 }
 `)
 
-// Note that to make build tags to work there must be an empty line between the
-// build tags line and the package line.
-const TemplateImplFile = (`// +build !goats_devmod
-
-package {{.PkgName}}
-
-import (
-	"github.com/linuxerwang/goats-html/runtime"
-	"io"
-	@@IMPORT@@
-)
-
-{{$tmplName := .Name}}
+const tmplImplBody = (`{{$tmplName := .Name}}
 type {{$tmplName}}TemplateImpl struct {
 	*runtime.BaseTemplate
 	builtinFilter *runtime.BuiltinFilter
@@ -82,8 +62,8 @@ func (__impl *{{$tmplName}}TemplateImpl) Render(__args *{{.Name}}TemplateArgs) e
 }
 
 {{range .Replaceables}}
-	func (__impl *{{$tmplName}}TemplateImpl) Replace{{.Name}}({{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc) {
-		__impl.{{.HiddenName}} = {{.HiddenName}}
+func (__impl *{{$tmplName}}TemplateImpl) Replace{{.Name}}({{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc) {
+	__impl.{{.HiddenName}} = {{.HiddenName}}
 }
 {{end}}
 
@@ -95,17 +75,7 @@ func New{{.Name}}Template(writer io.Writer, settings *runtime.TemplateSettings) 
 }
 `)
 
-const TemplateImplClosureFile = (`{{$tmplName := .Name}}/**
- * @fileoverview {{$tmplName}} Template.
- */
-
-goog.provide('{{.ClosurePkgName}}.{{$tmplName}}Template');
-
-goog.require('goats.runtime.TagAttrs');
-goog.require('goats.runtime.filters');
-goog.require('goog.dom');
-@@IMPORT@@
-
+const tmplClosureBody = (`{{$tmplName := .Name}}
 
 
 /**
@@ -164,18 +134,7 @@ goog.require('goog.dom');
 {{end}}
 `)
 
-// Note that to make build tags to work there must be an empty line between the
-// build tags line and the package line.
-const TemplateProxyFile = (`// +build goats_devmod
-
-package {{.PkgName}}
-
-import (
-	"github.com/linuxerwang/goats-html/runtime"
-	"io"
-)
-
-{{$tmplName := .Name}}
+const tmplProxyBody = (`{{$tmplName := .Name}}
 type {{.HiddenName}}TemplateProxy struct {
 	*runtime.BaseTemplate
 {{range .Replaceables}}  {{.HiddenName}} {{$tmplName}}{{.Name}}ReplFunc
@@ -205,7 +164,7 @@ func New{{.Name}}Template(writer io.Writer, settings *runtime.TemplateSettings) 
 }
 `)
 
-const TemplateMainFile = (`package main
+const tmplMainFile = (`package main
 import(
 	"bytes"
 	"{{.Pkg}}"
@@ -346,76 +305,114 @@ func (t *GoatsTemplate) IsDirty() bool {
 	return false
 }
 
-func (t *GoatsTemplate) generateInterface() {
-	goFilePath := filepath.Join(t.OutputPath, t.OutputIfaceFile)
-	goFile, err := os.Create(goFilePath)
-	if err != nil {
-		log.Fatal("Failed to create file " + goFilePath)
-	}
-	defer goFile.Close()
-
-	var buffer bytes.Buffer
-	tmpl, err := txttpl.New("interface").Parse(TemplateInterfaceFile)
-	if err != nil {
-		log.Fatal("Failed to generate file "+goFilePath, err)
-	}
-	err = tmpl.Execute(&buffer, t)
-	if err != nil {
-		log.Fatal("Failed to generate file "+goFilePath, err)
-	}
-
-	// Generate imports
-	var importsBuffer bytes.Buffer
-	t.pkgRefs.GenerateImports(&importsBuffer, pkgmgr.GenInterfaceImports)
-	source := strings.Replace(buffer.String(), "@@IMPORT@@", importsBuffer.String(), 1)
-	source = formatSource(source)
-	io.WriteString(goFile, source)
+func (t *GoatsTemplate) genIfacePkgDecl(output io.Writer) {
+	io.WriteString(output, fmt.Sprintf("package %s\n\n", t.PkgName))
 }
 
-func (t *GoatsTemplate) generateImpl() {
-	goFilePath := filepath.Join(t.OutputPath, t.OutputImplFile)
-	goFile, err := os.Create(goFilePath)
+func (t *GoatsTemplate) genIfaceImports(output io.Writer) {
+	io.WriteString(output, "\"github.com/linuxerwang/goats-html/runtime\"\n")
+	t.pkgRefs.GenerateImports(output, pkgmgr.GenInterfaceImports)
+}
+
+func (t *GoatsTemplate) genIfaceBody(output io.Writer) {
+	tmpl, err := txttpl.New("iface-body").Parse(tmplIfaceBody)
 	if err != nil {
-		log.Fatal("Failed to create file " + goFilePath)
+		log.Fatal("Failed to generate interface body,", err)
 	}
-	defer goFile.Close()
+
+	err = tmpl.Execute(output, t)
+	if err != nil {
+		log.Fatal("Failed to generate interface body,", err)
+	}
+}
+
+func (t *GoatsTemplate) genImplPkgDecl(output io.Writer) {
+	// Note that to make build tags to work there must be an empty line between the
+	// build tags line and the package line.
+	io.WriteString(output, "// +build !goats_devmod\n\n")
+	io.WriteString(output, fmt.Sprintf("package %s\n\n", t.PkgName))
+}
+
+func (t *GoatsTemplate) genImplImports(output io.Writer) {
+	io.WriteString(output, "\"github.com/linuxerwang/goats-html/runtime\"\n")
+	io.WriteString(output, "\"io\"\n")
+	t.pkgRefs.GenerateImports(output, pkgmgr.GenImplImports)
+}
+
+func (t *GoatsTemplate) genImplBody(output io.Writer) {
+	tmpl, err := txttpl.New("impl-body").Parse(tmplImplBody)
+	if err != nil {
+		log.Fatal("Failed to generate implementation body,", err)
+	}
 
 	var buffer bytes.Buffer
-	switch t.Parser.Settings.OutputFormat {
-	case "go":
-		tmpl, err := txttpl.New("impl").Parse(TemplateImplFile)
-		if err != nil {
-			log.Fatal("Failed to generate file "+goFilePath, err)
-		}
-		err = tmpl.Execute(&buffer, t)
-		if err != nil {
-			log.Fatal("Failed to generate file "+goFilePath, err)
-		}
-	case "closure":
-		prefix := t.Parser.Settings.OutputPkgPrefix
-		pkgName := ""
-		for i, part := range strings.Split(prefix, ".") {
-			if i == 0 {
-				pkgName = part
-			} else {
-				pkgName += "." + part
-			}
-		}
-		pkgName += "." + t.PkgName
-
-		tmpl, err := txttpl.New("impl").Parse(TemplateImplClosureFile)
-		if err != nil {
-			log.Fatal("Failed to generate file "+goFilePath, err)
-		}
-		t.ClosurePkgName = pkgName
-		err = tmpl.Execute(&buffer, t)
-		if err != nil {
-			log.Fatal("Failed to generate file "+goFilePath, err)
-		}
+	err = tmpl.Execute(&buffer, t)
+	if err != nil {
+		log.Fatal("Failed to generate implementation body,", err)
 	}
 
-	// Generate render content
+	io.WriteString(output, strings.Replace(buffer.String(), "@@RENDER@@", t.genRenderContent(output), 1))
+}
 
+func (t *GoatsTemplate) genProxyPkgDecl(output io.Writer) {
+	// Note that to make build tags to work there must be an empty line between the
+	// build tags line and the package line.
+	io.WriteString(output, "// +build goats_devmod\n\n")
+	io.WriteString(output, fmt.Sprintf("package %s\n\n", t.PkgName))
+}
+
+func (t *GoatsTemplate) genProxyImports(output io.Writer) {
+	io.WriteString(output, "\"github.com/linuxerwang/goats-html/runtime\"\n")
+	io.WriteString(output, "\"io\"\n")
+}
+
+func (t *GoatsTemplate) genProxyBody(output io.Writer) {
+	tmpl, err := txttpl.New("proxy-body").Parse(tmplProxyBody)
+	if err != nil {
+		log.Fatal("Failed to generate proxy body,", err)
+	}
+
+	err = tmpl.Execute(output, t)
+	if err != nil {
+		log.Fatal("Failed to generate proxy body,", err)
+	}
+}
+
+func (t *GoatsTemplate) genClosurePkgDoc(output io.Writer) {
+	io.WriteString(output, fmt.Sprintf("/**\n * @fileoverview Template.\n */\n\n"))
+}
+
+func (t *GoatsTemplate) genClosureProvides(output io.Writer) {
+	io.WriteString(output, fmt.Sprintf("goog.provide('%s.%sTemplate');\n", t.ClosurePkgName, t.Name))
+}
+
+func (t *GoatsTemplate) genClosureCommonRequires(output io.Writer) {
+	io.WriteString(output, "goog.require('goats.runtime.TagAttrs');\n")
+	io.WriteString(output, "goog.require('goats.runtime.filters');\n")
+	io.WriteString(output, "goog.require('goog.dom');\n")
+}
+
+func (t *GoatsTemplate) genClosureRequires(output io.Writer) {
+	t.pkgRefs.GenerateRequires(output)
+}
+
+func (t *GoatsTemplate) genClosureBody(output io.Writer) {
+	tmpl, err := txttpl.New("closure-body").Parse(tmplClosureBody)
+	if err != nil {
+		log.Fatal("Failed to generate closure body,", err)
+	}
+
+	var buffer bytes.Buffer
+	err = tmpl.Execute(&buffer, t)
+	if err != nil {
+		log.Fatal("Failed to generate closure body,", err)
+	}
+
+	io.WriteString(output, strings.Replace(buffer.String(), "@@RENDER@@", t.genRenderContent(output), 1))
+}
+
+// genRenderContent traverses the HTML node and render the template.
+func (t *GoatsTemplate) genRenderContent(output io.Writer) string {
 	var headProcessor processors.Processor = processors.NewHeadProcessor()
 
 	var argProcessor processors.Processor = processors.NewArgProcessor(t.Args)
@@ -429,49 +426,10 @@ func (t *GoatsTemplate) generateImpl() {
 		docTypeProcessor.SetNext(headProcessor)
 		headProcessor = docTypeProcessor
 	}
+
 	var renderBuffer bytes.Buffer
 	headProcessor.Process(&renderBuffer, ctx)
-
-	source := buffer.String()
-
-	switch t.Parser.Settings.OutputFormat {
-	case "go":
-		// manage imports
-		var importsBuffer bytes.Buffer
-		t.pkgRefs.GenerateImports(&importsBuffer, pkgmgr.GenImplImports)
-		source = strings.Replace(source, "@@IMPORT@@", importsBuffer.String(), 1)
-		source = strings.Replace(source, "@@RENDER@@", renderBuffer.String(), 1)
-		source = formatSource(source)
-	case "closure":
-		// manage requires
-		var requiresBuffer bytes.Buffer
-		t.pkgRefs.GenerateRequires(&requiresBuffer)
-		source = strings.Replace(source, "@@IMPORT@@", requiresBuffer.String(), 1)
-		source = strings.Replace(source, "@@RENDER@@", renderBuffer.String(), 1)
-	}
-
-	io.WriteString(goFile, source)
-}
-
-func (t *GoatsTemplate) generateProxy() {
-	goFilePath := filepath.Join(t.OutputPath, t.OutputProxyFile)
-	goFile, err := os.Create(goFilePath)
-	if err != nil {
-		log.Fatal("Failed to create file " + goFilePath)
-	}
-	defer goFile.Close()
-
-	var buffer bytes.Buffer
-	tmpl, err := txttpl.New("proxy").Parse(TemplateProxyFile)
-	if err != nil {
-		log.Fatal("Failed to generate file "+goFilePath, err)
-	}
-	err = tmpl.Execute(&buffer, t)
-	if err != nil {
-		log.Fatal("Failed to generate file ", goFilePath, err)
-	}
-	source := formatSource(buffer.String())
-	io.WriteString(goFile, source)
+	return renderBuffer.String()
 }
 
 func (t *GoatsTemplate) buildProcessorChain(preProcessor processors.Processor, node *html.Node) {

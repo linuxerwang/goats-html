@@ -159,7 +159,7 @@ var SPACES = '                                                                  
  * Generate space string with the given width.
  *
  * @param {number} width The width.
- * @returns {string} The result.
+ * @returns {number|string} The result.
  */
 goats.runtime.filters.fillSpaces = function(width) {
 	if (width == SPACES.length) {
@@ -189,7 +189,6 @@ goats.runtime.filters.fillSpaces = function(width) {
  * @param {number} width The width.
  * @param {boolean} left Whether justify to left.
  * @returns {string} The result.
- * @private
  */
 goats.runtime.filters.just = function(input, width, left) {
 	if (input.length < width) {

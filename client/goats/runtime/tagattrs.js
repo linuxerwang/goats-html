@@ -1,6 +1,5 @@
 goog.provide('goats.runtime.TagAttrs');
 
-goog.require('goog.string');
 goog.require('goog.object');
 
 

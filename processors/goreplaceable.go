@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/linuxerwang/goats-html/symbolmgr"
 	"github.com/linuxerwang/goats-html/util"
 )
 
@@ -23,9 +24,13 @@ func (r *GoReplaceableProcessor) Process(writer io.Writer, ctx *TagContext) {
 			io.WriteString(writer, fmt.Sprintf("  %s := %s\n", arg.Name, arg.Val))
 		}
 
+		ctx.symMgr.Push(r.createSymbolMap(ctx))
+
 		if r.next != nil {
 			r.next.Process(writer, ctx)
 		}
+
+		ctx.symMgr.Pop()
 
 		io.WriteString(writer, "} else {\n")
 		io.WriteString(writer, fmt.Sprintf("  args := &%s%sReplArgs{\n", r.tmplName, r.slotName))
@@ -53,6 +58,21 @@ func (r *GoReplaceableProcessor) Process(writer io.Writer, ctx *TagContext) {
 		io.WriteString(writer, fmt.Sprintf("  __self.%s_(__element, __args);\n", r.hiddenName))
 		io.WriteString(writer, "}\n")
 	}
+}
+
+func (r *GoReplaceableProcessor) createSymbolMap(ctx *TagContext) map[string]*symbolmgr.Symbol {
+	sm := make(map[string]*symbolmgr.Symbol)
+
+	for _, arg := range r.args {
+		s := &symbolmgr.Symbol{
+			Name: arg.Name,
+			Type: symbolmgr.TypeArg,
+			IsPb: arg.IsPb,
+		}
+		sm[arg.Name] = s
+	}
+
+	return sm
 }
 
 func NewReplaceableProcessor(tmplName string, slotName string, args []*Argument) *GoReplaceableProcessor {

@@ -1,8 +1,8 @@
 package pkgmgr
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"path"
 	"strings"
@@ -34,11 +34,11 @@ type PkgImport struct {
 	pbPkg string
 }
 
-func (pi *PkgImport) generateImports(buffer *bytes.Buffer) {
+func (pi *PkgImport) generateImports(output io.Writer) {
 	if pi.alias != "" {
-		buffer.WriteString(fmt.Sprintf("%s \"%s\"\n", pi.alias, pi.path))
+		io.WriteString(output, fmt.Sprintf("%s \"%s\"\n", pi.alias, pi.path))
 	} else {
-		buffer.WriteString(fmt.Sprintf("\"%s\"\n", pi.path))
+		io.WriteString(output, fmt.Sprintf("\"%s\"\n", pi.path))
 	}
 }
 
@@ -105,7 +105,7 @@ func (pr *PkgRefs) RefClosureRequire(require string) {
 	pr.closureRequires[require] = true
 }
 
-func (pr *PkgRefs) GenerateImports(buffer *bytes.Buffer, genType GenType) {
+func (pr *PkgRefs) GenerateImports(output io.Writer, genType GenType) {
 	for path, forIface := range pr.pkgs {
 		if genType == GenInterfaceImports && !forIface {
 			continue
@@ -113,13 +113,13 @@ func (pr *PkgRefs) GenerateImports(buffer *bytes.Buffer, genType GenType) {
 		if genType == GenImplImports && forIface {
 			continue
 		}
-		pr.pkgMgr.PkgByPath(path).generateImports(buffer)
+		pr.pkgMgr.PkgByPath(path).generateImports(output)
 	}
 }
 
-func (pr *PkgRefs) GenerateRequires(buffer *bytes.Buffer) {
+func (pr *PkgRefs) GenerateRequires(output io.Writer) {
 	for r, _ := range pr.closureRequires {
-		buffer.WriteString(fmt.Sprintf("goog.require('%s');\n", r))
+		io.WriteString(output, fmt.Sprintf("goog.require('%s');\n", r))
 	}
 }
 

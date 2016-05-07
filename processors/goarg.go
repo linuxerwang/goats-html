@@ -10,9 +10,11 @@ import (
 )
 
 /*
- * There are two different places a go:arg can appear:
+ * There are three different places a go:arg can appear:
  * - A template definition
  *     <div go:template="<template name>" go:arg="<name>[pb]: <type> [= expression]"></div>
+ * - A replaceable definition
+ *     <div go:replaceable="<replaceable name>" go:arg="<name>[pb]: <expression>"></div>
  * - A template call
  *     <div go:call="#<template name>" go:arg="<name>[pb]: <expression>"></div>
  */

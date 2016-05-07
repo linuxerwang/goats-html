@@ -28,6 +28,7 @@ type ParserSettings struct {
 	Clean           bool
 	KeepComments    bool
 	SampleData      bool
+	GenMergedFile   bool
 }
 
 // The goats template parser. There is one parser per template file.
@@ -43,6 +44,7 @@ type GoatsParser struct {
 	DocTypeAttrs []html.Attribute
 	Templates    map[string]*GoatsTemplate
 	PkgMgr       *pkgmgr.PkgManager
+	PkgRefs      *pkgmgr.PkgRefs
 }
 
 func (p *GoatsParser) loadFile() {
@@ -99,7 +101,14 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 		templateName := ""
 		needsDocType := false
 		args := []*processors.Argument{}
-		pkgRefs := p.PkgMgr.CreatePkgRefs()
+
+		var pkgRefs *pkgmgr.PkgRefs
+		if p.Settings.GenMergedFile {
+			pkgRefs = p.PkgRefs
+		} else {
+			pkgRefs = p.PkgMgr.CreatePkgRefs()
+		}
+
 		for _, attr := range node.Attr {
 			if attr.Key == "go:template" {
 				templateName = attr.Val
@@ -120,6 +129,21 @@ func (p *GoatsParser) FindTemplates(node *html.Node) {
 			}
 
 			template := NewGoatsTemplate(p, templateName, args, node, needsDocType, pkgRefs)
+			if p.Settings.OutputFormat == "closure" {
+				prefix := p.Settings.OutputPkgPrefix
+				pkgName := ""
+				for i, part := range strings.Split(prefix, ".") {
+					if i == 0 {
+						pkgName = part
+					} else {
+						pkgName += "." + part
+					}
+				}
+				pkgName += "." + template.PkgName
+
+				template.ClosurePkgName = pkgName
+			}
+
 			p.Templates[templateName] = template
 			p.findReplaceables(node, template)
 			for c := node.FirstChild; c != nil; c = c.NextSibling {
@@ -221,22 +245,216 @@ func (p *GoatsParser) Generate() {
 		os.MkdirAll(cmdPath, os.ModePerm)
 	}
 
-	for name, template := range p.Templates {
-		fmt.Printf("    Generating template \"%s\":\n", name)
-		if p.Settings.OutputFormat == "go" {
-			fmt.Printf("        %s\n", template.OutputIfaceFile)
-			template.generateInterface()
+	switch p.Settings.OutputFormat {
+	case "go":
+		p.genGoSource()
+	case "closure":
+		p.genClosureSource()
+	}
+}
+
+func (p *GoatsParser) genGoSource() {
+	if p.Settings.GenMergedFile {
+		p.genMergedFile()
+	} else {
+		p.genMultiGoFile()
+	}
+}
+
+func (p *GoatsParser) genMergedFile() {
+	p.genMergedIfaceFile()
+	p.genMergedImplFile()
+	p.genMergedProxyFile()
+	p.genMainFile()
+}
+
+func (p *GoatsParser) genMergedIfaceFile() {
+	fmt.Printf("    Generating merged Go interface file \"interfaces.go\":\n")
+
+	var bufBody bytes.Buffer
+	var bufOther bytes.Buffer
+
+	isFirst := true
+	for _, t := range p.Templates {
+		if isFirst {
+			t.genIfacePkgDecl(&bufOther)
+			io.WriteString(&bufOther, "import (\n")
+			t.genIfaceImports(&bufOther)
+			io.WriteString(&bufOther, ")\n\n")
+			isFirst = false
 		}
-		fmt.Printf("        %s\n", template.OutputImplFile)
-		template.generateImpl()
-		if p.Settings.OutputFormat == "go" {
-			fmt.Printf("        %s\n", template.OutputProxyFile)
-			template.generateProxy()
-		}
+		t.genIfaceBody(&bufBody)
 	}
 
+	p.genFile(p.OutputPath, "interfaces.go", func(output io.Writer) {
+		io.WriteString(output, formatSource(bufOther.String()+bufBody.String()))
+	})
+}
+
+func (p *GoatsParser) genMergedImplFile() {
+	fmt.Printf("    Generating merged Go implementation file \"implementations.go\":\n")
+
+	var bufBody bytes.Buffer
+	var bufOther bytes.Buffer
+
+	isFirst := true
+	for _, t := range p.Templates {
+		if isFirst {
+			t.genImplPkgDecl(&bufOther)
+			io.WriteString(&bufOther, "import (\n")
+			t.genImplImports(&bufOther)
+			io.WriteString(&bufOther, ")\n\n")
+			isFirst = false
+		}
+		t.genImplBody(&bufBody)
+	}
+
+	p.genFile(p.OutputPath, "implementations.go", func(output io.Writer) {
+		io.WriteString(output, formatSource(bufOther.String()+bufBody.String()))
+	})
+}
+
+func (p *GoatsParser) genMergedProxyFile() {
+	fmt.Printf("    Generating merged Go proxy file \"proxies.go\":\n")
+
+	var bufBody bytes.Buffer
+	var bufOther bytes.Buffer
+
+	isFirst := true
+	for _, t := range p.Templates {
+		if isFirst {
+			t.genProxyPkgDecl(&bufOther)
+			io.WriteString(&bufOther, "import (\n")
+			t.genProxyImports(&bufOther)
+			io.WriteString(&bufOther, ")\n\n")
+			isFirst = false
+		}
+		t.genProxyBody(&bufOther)
+	}
+
+	p.genFile(p.OutputPath, "proxies.go", func(output io.Writer) {
+		io.WriteString(output, formatSource(bufOther.String()+bufBody.String()))
+	})
+}
+
+func (p *GoatsParser) genMainFile() {
+	p.generateMain()
+}
+
+func (p *GoatsParser) genMultiGoFile() {
+	for name, t := range p.Templates {
+		fmt.Printf("    Generating template \"%s\":\n", name)
+
+		var bufBody bytes.Buffer
+		var bufOther bytes.Buffer
+
+		t.genIfacePkgDecl(&bufOther)
+		io.WriteString(&bufOther, "import (\n")
+		t.genIfaceImports(&bufOther)
+		io.WriteString(&bufOther, ")\n\n")
+		t.genIfaceBody(&bufBody)
+
+		p.genFile(p.OutputPath, t.OutputIfaceFile, func(output io.Writer) {
+			fmt.Printf("        %s\n", t.OutputIfaceFile)
+			io.WriteString(output, formatSource(bufOther.String()+bufBody.String()))
+		})
+
+		bufBody.Reset()
+		bufOther.Reset()
+
+		t.genImplPkgDecl(&bufOther)
+		io.WriteString(&bufOther, "import (\n")
+		t.genImplImports(&bufOther)
+		io.WriteString(&bufOther, ")\n\n")
+		t.genImplBody(&bufBody)
+
+		p.genFile(p.OutputPath, t.OutputImplFile, func(output io.Writer) {
+			fmt.Printf("        %s\n", t.OutputImplFile)
+			io.WriteString(output, formatSource(bufOther.String()+bufBody.String()))
+		})
+
+		bufBody.Reset()
+		bufOther.Reset()
+
+		t.genProxyPkgDecl(&bufOther)
+		io.WriteString(&bufOther, "import (\n")
+		t.genProxyImports(&bufOther)
+		io.WriteString(&bufOther, ")\n\n")
+		t.genProxyBody(&bufBody)
+
+		p.genFile(p.OutputPath, t.OutputProxyFile, func(output io.Writer) {
+			fmt.Printf("        %s\n", t.OutputProxyFile)
+			io.WriteString(output, formatSource(bufOther.String()+bufBody.String()))
+		})
+	}
+
+	// Generate main.
 	fmt.Println("    Generating main file " + MainFileName)
 	p.generateMain()
+}
+
+func (p *GoatsParser) genClosureSource() {
+	if p.Settings.GenMergedFile {
+		p.genMergedClosureFile()
+	} else {
+		p.genMultiClosureFile()
+	}
+}
+
+func (p *GoatsParser) genMergedClosureFile() {
+	p.genFile(p.OutputPath, "closure-all.js", func(output io.Writer) {
+		fmt.Printf("    Generating template \"closure-all.js\":\n")
+
+		isFirst := true
+		for _, t := range p.Templates {
+			if isFirst {
+				t.genClosurePkgDoc(output)
+				isFirst = false
+			}
+		}
+
+		for _, t := range p.Templates {
+			t.genClosureProvides(output)
+		}
+
+		isFirst = true
+		for _, t := range p.Templates {
+			if isFirst {
+				t.genClosureCommonRequires(output)
+				isFirst = false
+			}
+			t.genClosureRequires(output)
+		}
+
+		for _, t := range p.Templates {
+			t.genClosureBody(output)
+		}
+	})
+}
+
+func (p *GoatsParser) genMultiClosureFile() {
+	for name, t := range p.Templates {
+		p.genFile(p.OutputPath, t.OutputImplFile, func(output io.Writer) {
+			fmt.Printf("    Generating template \"%s\":\n", name)
+			fmt.Printf("        %s\n", t.OutputImplFile)
+			t.genClosurePkgDoc(output)
+			t.genClosureProvides(output)
+			t.genClosureCommonRequires(output)
+			t.genClosureRequires(output)
+			t.genClosureBody(output)
+		})
+	}
+}
+
+func (p *GoatsParser) genFile(dir string, fn string, callback func(output io.Writer)) {
+	filePath := filepath.Join(dir, fn)
+	output, err := os.Create(filePath)
+	if err != nil {
+		log.Fatal("Failed to create file " + filePath)
+	}
+	defer output.Close()
+
+	callback(output)
 }
 
 func (p *GoatsParser) generateMain() {
@@ -248,7 +466,7 @@ func (p *GoatsParser) generateMain() {
 	defer goFile.Close()
 
 	var buffer bytes.Buffer
-	tmpl, err := txttpl.New("main").Parse(TemplateMainFile)
+	tmpl, err := txttpl.New("main").Parse(tmplMainFile)
 	if err != nil {
 		log.Fatal("Failed to parse main template\n", err)
 	}
@@ -297,6 +515,9 @@ func NewParser(parserSettings *ParserSettings, htmlFilePath string) *GoatsParser
 		RelativePath: prefix,
 		Templates:    map[string]*GoatsTemplate{},
 		PkgMgr:       pkgMgr,
+	}
+	if parserSettings.GenMergedFile {
+		p.PkgRefs = p.PkgMgr.CreatePkgRefs()
 	}
 	p.loadFile()
 	return p

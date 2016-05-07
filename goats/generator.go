@@ -32,6 +32,7 @@ var (
 	genClean        = genCmd.Flag.Bool("clean", true, "Clean unexisting *_html directories.")
 	genKeepComments = genCmd.Flag.Bool("keep_comments", false, "Keep comment in output HTML.")
 	genSampleData   = genCmd.Flag.Bool("sample_data", false, "Keep comment in output HTML.")
+	genMergedFile   = genCmd.Flag.Bool("gen_merged_file", false, "Generate merged files for all templates in one HTML file.")
 
 	parserSettings *goats.ParserSettings
 )
@@ -64,6 +65,7 @@ func runGen(cmd *Command, args []string) {
 		Clean:           *genClean,
 		KeepComments:    *genKeepComments,
 		SampleData:      *genSampleData,
+		GenMergedFile:   *genMergedFile,
 	}
 
 	if len(args) > 0 {
