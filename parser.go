@@ -299,6 +299,9 @@ func (p *GoatsParser) genMergedImplFile() {
 
 	isFirst := true
 	for _, t := range p.Templates {
+		// Gen impl body first to collect imports.
+		t.genImplBody(&bufBody)
+
 		if isFirst {
 			t.genImplPkgDecl(&bufOther)
 			io.WriteString(&bufOther, "import (\n")
@@ -306,7 +309,6 @@ func (p *GoatsParser) genMergedImplFile() {
 			io.WriteString(&bufOther, ")\n\n")
 			isFirst = false
 		}
-		t.genImplBody(&bufBody)
 	}
 
 	p.genFile(p.OutputPath, "implementations.go", func(output io.Writer) {
@@ -348,11 +350,13 @@ func (p *GoatsParser) genMultiGoFile() {
 		var bufBody bytes.Buffer
 		var bufOther bytes.Buffer
 
+		// Gen iface body first to collect imports.
+		t.genIfaceBody(&bufBody)
+
 		t.genIfacePkgDecl(&bufOther)
 		io.WriteString(&bufOther, "import (\n")
 		t.genIfaceImports(&bufOther)
 		io.WriteString(&bufOther, ")\n\n")
-		t.genIfaceBody(&bufBody)
 
 		p.genFile(p.OutputPath, t.OutputIfaceFile, func(output io.Writer) {
 			fmt.Printf("        %s\n", t.OutputIfaceFile)
@@ -362,11 +366,13 @@ func (p *GoatsParser) genMultiGoFile() {
 		bufBody.Reset()
 		bufOther.Reset()
 
+		// Gen impl body first to collect imports.
+		t.genImplBody(&bufBody)
+
 		t.genImplPkgDecl(&bufOther)
 		io.WriteString(&bufOther, "import (\n")
 		t.genImplImports(&bufOther)
 		io.WriteString(&bufOther, ")\n\n")
-		t.genImplBody(&bufBody)
 
 		p.genFile(p.OutputPath, t.OutputImplFile, func(output io.Writer) {
 			fmt.Printf("        %s\n", t.OutputImplFile)
@@ -376,11 +382,13 @@ func (p *GoatsParser) genMultiGoFile() {
 		bufBody.Reset()
 		bufOther.Reset()
 
+		// Gen proxy body first to collect imports.
+		t.genProxyBody(&bufBody)
+
 		t.genProxyPkgDecl(&bufOther)
 		io.WriteString(&bufOther, "import (\n")
 		t.genProxyImports(&bufOther)
 		io.WriteString(&bufOther, ")\n\n")
-		t.genProxyBody(&bufBody)
 
 		p.genFile(p.OutputPath, t.OutputProxyFile, func(output io.Writer) {
 			fmt.Printf("        %s\n", t.OutputProxyFile)
