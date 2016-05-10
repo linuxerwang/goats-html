@@ -413,6 +413,11 @@ func (p *GoatsParser) genMergedClosureFile() {
 	p.genFile(p.OutputPath, "closure-all.js", func(output io.Writer) {
 		fmt.Printf("    Generating template \"closure-all.js\":\n")
 
+		var buf bytes.Buffer
+		for _, t := range p.Templates {
+			t.genClosureBody(&buf)
+		}
+
 		isFirst := true
 		for _, t := range p.Templates {
 			if isFirst {
@@ -434,9 +439,7 @@ func (p *GoatsParser) genMergedClosureFile() {
 			t.genClosureRequires(output)
 		}
 
-		for _, t := range p.Templates {
-			t.genClosureBody(output)
-		}
+		io.WriteString(output, buf.String())
 	})
 }
 
@@ -445,11 +448,16 @@ func (p *GoatsParser) genMultiClosureFile() {
 		p.genFile(p.OutputPath, t.OutputImplFile, func(output io.Writer) {
 			fmt.Printf("    Generating template \"%s\":\n", name)
 			fmt.Printf("        %s\n", t.OutputImplFile)
+
+			var buf bytes.Buffer
+			t.genClosureBody(&buf)
+
 			t.genClosurePkgDoc(output)
 			t.genClosureProvides(output)
 			t.genClosureCommonRequires(output)
 			t.genClosureRequires(output)
-			t.genClosureBody(output)
+
+			io.WriteString(output, buf.String())
 		})
 	}
 }
