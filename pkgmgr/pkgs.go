@@ -123,6 +123,12 @@ func (pr *PkgRefs) GenerateRequires(output io.Writer) {
 	}
 }
 
+func (pr *PkgRefs) DumpRequires(requires map[string]bool) {
+	for r, _ := range pr.closureRequires {
+		requires[r] = true
+	}
+}
+
 // PackageManager maintains all package imports in a template file.
 type PkgManager struct {
 	aliasId         int

@@ -199,5 +199,5 @@ goats.runtime.filters.just = function(input, width, left) {
 			input = goats.runtime.filters.fillSpaces(extra) + input;
 		}
 	}
-	return input
+	return input;
 };

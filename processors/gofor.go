@@ -147,6 +147,7 @@ func (f *GoForProcessor) Process(writer io.Writer, ctx *TagContext) {
 		}
 
 		// Start of for loop.
+		ctx.pkgRefs.RefClosureRequire("goog.array")
 		io.WriteString(writer, fmt.Sprintf("goog.array.forEach(__loopItems, function(%s, %s) {\n", util.TrimWhiteSpaces(itemVar2), util.TrimWhiteSpaces(itemVar1)))
 
 		if loopVarName != "" {

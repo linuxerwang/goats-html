@@ -430,13 +430,14 @@ func (p *GoatsParser) genMergedClosureFile() {
 			t.genClosureProvides(output)
 		}
 
-		isFirst = true
+		requires := make(map[string]bool)
 		for _, t := range p.Templates {
-			if isFirst {
-				t.genClosureCommonRequires(output)
-				isFirst = false
-			}
-			t.genClosureRequires(output)
+			t.dumpClosureCommonRequires(requires)
+			t.dumpClosureRequires(requires)
+		}
+
+		for r, _ := range requires {
+			io.WriteString(output, fmt.Sprintf("goog.require('%s');\n", r))
 		}
 
 		io.WriteString(output, buf.String())
