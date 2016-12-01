@@ -72,7 +72,7 @@ func (ctx *TagContext) MaybeAddImports(expression string) {
 
 func (ctx *TagContext) RewriteExpression(originalExpr string) (string, error) {
 	ctx.MaybeAddImports(originalExpr)
-	er := expl.NewExprRewriter(ctx.symMgr, ctx.OutputFormat)
+	er := expl.NewExprRewriter(ctx.symMgr, ctx.pkgRefs, ctx.OutputFormat)
 	return er.RewriteExpression(originalExpr)
 }
 

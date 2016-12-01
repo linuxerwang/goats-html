@@ -388,13 +388,11 @@ func (t *GoatsTemplate) genClosureProvides(output io.Writer) {
 
 func (t *GoatsTemplate) genClosureCommonRequires(output io.Writer) {
 	io.WriteString(output, "goog.require('goats.runtime.TagAttrs');\n")
-	io.WriteString(output, "goog.require('goats.runtime.filters');\n")
 	io.WriteString(output, "goog.require('goog.dom');\n")
 }
 
 func (t *GoatsTemplate) dumpClosureCommonRequires(requires map[string]bool) {
 	requires["goats.runtime.TagAttrs"] = true
-	requires["goats.runtime.filters"] = true
 	requires["goog.dom"] = true
 }
 

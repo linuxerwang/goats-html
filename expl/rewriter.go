@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/linuxerwang/goats-html/pkgmgr"
 	"github.com/linuxerwang/goats-html/symbolmgr"
 	"github.com/linuxerwang/goats-html/util"
 )
@@ -24,6 +25,7 @@ import (
 // - register imports for Go.
 type ExprRewriter struct {
 	symMgr       *symbolmgr.SymbolMgr
+	pkgRefs      pkgmgr.AliasReferer
 	outputFormat string
 	filterPrefix string
 
@@ -248,6 +250,8 @@ func (er *ExprRewriter) processExpr(n ast.Node, needQuote bool) (string, error) 
 				return "", errors.New("Function call is not allowed in goats: " + fun)
 			}
 		case "closure":
+			er.pkgRefs.RefClosureRequire("goats.runtime.filters")
+
 			// keep the all-lower-case name for javascript.
 		}
 
@@ -277,7 +281,7 @@ func (er *ExprRewriter) processExpr(n ast.Node, needQuote bool) (string, error) 
 }
 
 // NewExprRewriter creates a new ExprRewriter for the given target format.
-func NewExprRewriter(symMgr *symbolmgr.SymbolMgr, format string) ExprHandler {
+func NewExprRewriter(symMgr *symbolmgr.SymbolMgr, pkgRefs pkgmgr.AliasReferer, format string) ExprHandler {
 	var prefix string
 	switch format {
 	case "go":
@@ -287,6 +291,7 @@ func NewExprRewriter(symMgr *symbolmgr.SymbolMgr, format string) ExprHandler {
 	}
 	return &ExprRewriter{
 		symMgr:       symMgr,
+		pkgRefs:      pkgRefs,
 		outputFormat: format,
 		filterPrefix: prefix,
 	}
