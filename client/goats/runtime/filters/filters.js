@@ -156,7 +156,7 @@ goats.runtime.filters.parseInt = function(val) {
 	if (goog.math.isInt(val)) {
 		return val;
 	}
-        return goog.string.parseInt(val);
+	return goog.string.parseInt(val);
 };
 
 // ================ utility functions ================
