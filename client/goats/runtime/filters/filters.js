@@ -1,6 +1,7 @@
 goog.provide('goats.runtime.filters');
 
 goog.require('goog.object');
+goog.require('goog.math');
 goog.require('goog.string');
 goog.require('goog.string.format');
 
@@ -145,6 +146,18 @@ goats.runtime.filters.format = function(f, var_args) {
 	return goog.string.format.apply(null, args);
 };
 
+/**
+ * Parse integer from string or integer.
+ *
+ * @param {string} val the string or integer.
+ * @returns {string} The result.
+ */
+goats.runtime.filters.parseInt = function(val) {
+	if (goog.math.isInt(val)) {
+		return val;
+	}
+        return goog.string.parseInt(val);
+};
 
 // ================ utility functions ================
 
