@@ -415,7 +415,7 @@ func (p *GoatsParser) genMergedClosureFile() {
 		fmt.Printf("    Generating template \"closure-all.js\":\n")
 
 		// Sort: guarantee output is reproducible (same checksum for same source code).
-		var keys []string
+		keys := make([]string, 0, len(p.Templates))
 		for key := range p.Templates {
 			keys = append(keys, key)
 		}
@@ -447,7 +447,7 @@ func (p *GoatsParser) genMergedClosureFile() {
 			t.dumpClosureRequires(requires)
 		}
 
-		keys = []string{}
+		keys = make([]string, 0, len(requires))
 		for key := range requires {
 			keys = append(keys, key)
 		}
