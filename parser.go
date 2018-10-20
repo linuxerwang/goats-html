@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	txttpl "text/template"
 	"time"
@@ -413,20 +414,30 @@ func (p *GoatsParser) genMergedClosureFile() {
 	p.genFile(p.OutputPath, "closure-all.js", func(output io.Writer) {
 		fmt.Printf("    Generating template \"closure-all.js\":\n")
 
+		// Sort: guarantee output is reproducible (same checksum for same source code).
+		var keys []string
+		for key := range p.Templates {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
 		var buf bytes.Buffer
-		for _, t := range p.Templates {
+		for _, key := range keys {
+			t := p.Templates[key]
 			t.genClosureBody(&buf)
 		}
 
 		isFirst := true
-		for _, t := range p.Templates {
+		for _, key := range keys {
+			t := p.Templates[key]
 			if isFirst {
 				t.genClosurePkgDoc(output)
 				isFirst = false
 			}
 		}
 
-		for _, t := range p.Templates {
+		for _, key := range keys {
+			t := p.Templates[key]
 			t.genClosureProvides(output)
 		}
 
@@ -436,8 +447,14 @@ func (p *GoatsParser) genMergedClosureFile() {
 			t.dumpClosureRequires(requires)
 		}
 
-		for r, _ := range requires {
-			io.WriteString(output, fmt.Sprintf("goog.require('%s');\n", r))
+		keys = []string{}
+		for key := range requires {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
+		for _, key := range keys {
+			io.WriteString(output, fmt.Sprintf("goog.require('%s');\n", key))
 		}
 
 		io.WriteString(output, buf.String())
