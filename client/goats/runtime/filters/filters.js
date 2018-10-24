@@ -1,7 +1,7 @@
 goog.provide('goats.runtime.filters');
 
-goog.require('goog.object');
 goog.require('goog.math');
+goog.require('goog.object');
 goog.require('goog.string');
 goog.require('goog.string.format');
 
